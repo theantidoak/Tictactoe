@@ -1,0 +1,32 @@
+* {
+  box-sizing: border-box;
+}
+
+header {
+  width: 100%;
+  text-align: center;
+}
+
+main {
+  width: 100%;
+}
+
+.game-board {
+  display: flex;
+  flex-wrap: wrap;
+  width: 21rem;
+  height: 21rem;
+  margin: 0 auto;
+  outline: 2px solid black;
+}
+
+.game-board > * {
+  width: 7rem;
+  height: 7rem;
+  border: 2px solid black;
+}
+
+.game-square {
+  text-align: center;
+  font-size: 6rem;
+}
