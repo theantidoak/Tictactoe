@@ -35,6 +35,32 @@ main {
   padding: .25rem 0 .5rem;
 }
 
+.choose-side {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.choose-side input {
+  width: 8rem;
+}
+
+#player-1::before {
+  content: 'Play X';
+  position: absolute;
+  left: -1rem;
+}
+
+#player-2::before {
+  content: 'Play O';
+  position: absolute;
+  left: -1rem;
+}
+
+.choose-side button {
+  min-width: 8rem;
+}
+
 .game-board {
   display: flex;
   flex-wrap: wrap;

@@ -7,12 +7,18 @@ const gameBoard = (() => {
   const resetButton = document.querySelector('.reset-button');
   const main = document.querySelector('main');
   const displayResult = document.querySelector('.display-results');
+  const nameButton = document.querySelector('.name-button');
+  const player1 = document.querySelector('#player-1');
+  const player2 = document.querySelector('#player-2');
+  const player1Name = document.querySelector("label[for='player-1']");
+  const player2Name = document.querySelector("label[for='player-2']");
 
   //bind events
   const addSquareListeners = () => gameSquares.forEach((square) => square.addEventListener('click', placeMove));
   const removeSquareListeners = () => gameSquares.forEach((square) => square.removeEventListener('click', placeMove));
   startButton.addEventListener('click', beginGame);
   resetButton.addEventListener('click', beginGame);
+  nameButton.addEventListener('click', playWithNames);
 
   //render
   function placeMove() {
@@ -32,6 +38,13 @@ const gameBoard = (() => {
     });
     gameboardArray = ['X', 'O', 'X', 'O', 'X', 'O', 'X', 'O', 'X'];
     addSquareListeners();
+  }
+
+  function playWithNames() {
+    console.log(player1.value);
+    console.log(player1Name);
+    player1Name.textContent = `${player1.value}`;
+    player2Name.textContent = `${player2.value}`;
   }
 
   const checkIfEmpty = (that) => {
@@ -80,3 +93,11 @@ const gameBoard = (() => {
     }
   }
 })();
+
+
+const Player = () => {
+  //cache DOM 
+  const player1 = document.querySelector('#player-1');
+  
+
+}
