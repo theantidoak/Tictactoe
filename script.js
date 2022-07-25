@@ -41,10 +41,12 @@ const gameBoard = (() => {
   }
 
   function playWithNames() {
-    console.log(player1.value);
-    console.log(player1Name);
     player1Name.textContent = `${player1.value}`;
     player2Name.textContent = `${player2.value}`;
+    player1Name.style.left = 0;
+    player2Name.style.left = 0;
+    player1.style.display = 'none';
+    player2.style.display = 'none';
   }
 
   const checkIfEmpty = (that) => {
