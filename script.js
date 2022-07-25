@@ -1,32 +1,41 @@
 const gameBoard = (() => {
+  let gameboardArray;
 
   //cache DOM
   const gameSquares = document.querySelectorAll('.game-square');
-  const Xbutton = document.querySelector('.X-button');
-  const Obutton = document.querySelector('.O-button');
+  const startButton = document.querySelector('.start-game');
   const resetButton = document.querySelector('.reset-button');
+  const main = document.querySelector('main');
+  const displayResult = document.querySelector('.display-results');
 
   //bind events
-  Xbutton.addEventListener('click', () => gameboardArray = ['X', 'O', 'X', 'O', 'X', 'O', 'X', 'O', 'X']);
-  Obutton.addEventListener('click', () => gameboardArray = ['O', 'X', 'O', 'X', 'O', 'X', 'O', 'X', 'O']);
+  const addSquareListeners = () => gameSquares.forEach((square) => square.addEventListener('click', placeMove));
+  const removeSquareListeners = () => gameSquares.forEach((square) => square.removeEventListener('click', placeMove));
+  startButton.addEventListener('click', beginGame);
   resetButton.addEventListener('click', beginGame);
-    
+
+  //render
+  function placeMove() {
+    if (checkIfEmpty(this) == false) return;
+    const move = document.createTextNode(`${gameboardArray.pop()}`);
+    this.appendChild(move);
+    _checkWin();
+  }
+
   function beginGame() {
+    main.style.filter = 'blur(0)';
+    startButton.style.display = 'none';
     gameSquares.forEach((square) => {
       while (square.firstChild) {
         square.removeChild(square.lastChild);
       }
-      gameboardArray = ['X', 'O', 'X', 'O', 'X', 'O', 'X', 'O', 'X'];
-      square.addEventListener('click', placeMove);
-    })
+    });
+    gameboardArray = ['X', 'O', 'X', 'O', 'X', 'O', 'X', 'O', 'X'];
+    addSquareListeners();
   }
 
-  //render
-  function placeMove() {
-    const move = document.createTextNode(`${gameboardArray.pop()}`);
-    this.appendChild(move);
-    this.removeEventListener('click', placeMove);
-    _checkWin();
+  const checkIfEmpty = (that) => {
+    return that.childNodes.length == 1 ? false : true;
   }
 
   const _checkRows = () => {
@@ -64,9 +73,10 @@ const gameBoard = (() => {
 
   function _checkWin() {
     if (_checkDiagonals() || _checkColumns() || _checkRows()) {
-      console.log('Win');
+      displayResult.textContent = 'You Win';
+      removeSquareListeners();
+    } else if (gameboardArray.length == 0) {
+      displayResult.textContent = 'It\'s a tie';
     }
   }
-
-  return {placeMove};
 })();
