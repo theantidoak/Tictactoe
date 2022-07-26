@@ -1,5 +1,4 @@
 const gameBoard = (() => {
-  let gameboardArray;
 
   //cache DOM
   const gameSquares = document.querySelectorAll('.game-square');
@@ -8,8 +7,8 @@ const gameBoard = (() => {
   const main = document.querySelector('main');
   const displayResult = document.querySelector('.display-results');
   const nameButton = document.querySelector('.name-button');
-  const player1 = document.querySelector('#player-1');
-  const player2 = document.querySelector('#player-2');
+  const player1Input = document.querySelector('#player-1');
+  const player2Input = document.querySelector('#player-2');
   const player1Name = document.querySelector("label[for='player-1']");
   const player2Name = document.querySelector("label[for='player-2']");
 
@@ -21,11 +20,16 @@ const gameBoard = (() => {
   nameButton.addEventListener('click', playWithNames);
 
   //render
-  function placeMove() {
+  function placeMove(token) {
     if (checkIfEmpty(this) == false) return;
-    const move = document.createTextNode(`${gameboardArray.pop()}`);
+    const move = document.createTextNode(`${token}`);
     this.appendChild(move);
     _checkWin();
+  }
+
+  const checkIfEmpty = (that) => {
+    console.log(that.childNodes)
+    return that.childNodes.length == 1 ? false : true;
   }
 
   function beginGame() {
@@ -36,21 +40,16 @@ const gameBoard = (() => {
         square.removeChild(square.lastChild);
       }
     });
-    gameboardArray = ['X', 'O', 'X', 'O', 'X', 'O', 'X', 'O', 'X'];
     addSquareListeners();
   }
 
   function playWithNames() {
-    player1Name.textContent = `${player1.value}`;
-    player2Name.textContent = `${player2.value}`;
+    player1Name.textContent = `${player1Input.value}`;
+    player2Name.textContent = `${player2Input.value}`;
     player1Name.style.left = 0;
     player2Name.style.left = 0;
-    player1.style.display = 'none';
-    player2.style.display = 'none';
-  }
-
-  const checkIfEmpty = (that) => {
-    return that.childNodes.length == 1 ? false : true;
+    player1Input.style.display = 'none';
+    player2Input.style.display = 'none';
   }
 
   const _checkRows = () => {
@@ -90,16 +89,19 @@ const gameBoard = (() => {
     if (_checkDiagonals() || _checkColumns() || _checkRows()) {
       displayResult.textContent = 'You Win';
       removeSquareListeners();
-    } else if (gameboardArray.length == 0) {
+    } else if (!token) { // Come back here
       displayResult.textContent = 'It\'s a tie';
     }
   }
+
 })();
 
 
-const Player = () => {
+const Player = (token) => {
   //cache DOM 
-  const player1 = document.querySelector('#player-1');
-  
-
+  gameBoard.placeMove(token);
+  return {token}
 }
+
+const player1 = Player('X');
+const player2 = Player('O');
