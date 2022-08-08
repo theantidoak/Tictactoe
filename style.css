@@ -25,7 +25,7 @@ header {
 
 main {
   width: 100%;
-  filter: blur(2px);
+  /* filter: blur(2px); */
 }
 
 .choose-side, .reset {
