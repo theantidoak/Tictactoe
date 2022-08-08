@@ -1,15 +1,20 @@
 const board = (() => {
 
     const squares = [...document.querySelectorAll('.game-square')];
+    const currentGame = squares.map((square) => square.textContent);
 
+    const updateGame = function() {
+        const index = squares.indexOf(this);
+        currentGame.splice(index, 1, this.textContent);
+    };
 
-    // const addtoArray;
-    return {squares};
+    return {squares, currentGame, updateGame};
     
 })();
 
 const gameController = (() => {
-    let currentGame = board.squares.map((square) => square.textContent);
+    const currentGame = board.currentGame;
+
     board.squares.forEach((square) => square.addEventListener('click', placeMove));
 
     function render() {
@@ -20,14 +25,9 @@ const gameController = (() => {
     function placeMove() {
         if (_squareIsEmpty.call(this) == false) return;
         render.call(this);
-        updateGame();
+        board.updateGame.call(this);
         _checkWin();
     }
-
-    const updateGame = function() {
-        currentGame = board.squares.map((square) => square.textContent);
-    };
-
 
     const _squareIsEmpty = function() {
         return this.textContent == "" ? true : false;
@@ -73,13 +73,8 @@ const gameController = (() => {
         if (_checkDiagonals() || _checkColumns() || _checkRows()) {
           console.log('You Win');
         }
-        // } else if (!token) { // Come back here
-        //   displayResult.textContent = 'It\'s a tie';
-        // }
       }
 
-    // const render;
-    // const checkForWin;
     // const changePlayer;
     
     return {currentGame};
