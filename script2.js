@@ -5,8 +5,24 @@ const board = (() => {
     const player1Input = document.querySelector('#player-1');
     const player2Input = document.querySelector('#player-2');
     const resetButton = document.querySelector('.reset-button');
+    const playerButtons = document.querySelectorAll('.choose-side button');
 
     const currentGame = squares.map((square) => square.textContent);
+
+    playerButtons.forEach((button) => button.addEventListener('click', selectSide));
+
+    function selectSide() {
+      switch (this.getAttribute('class')) {
+        case 'human1':
+          break;
+        case 'bot1':
+          break;
+        case 'human2':
+          break;
+        case 'bot2':
+          break;
+      }
+    }
 
     const updateGame = function() {
         const index = squares.indexOf(this);
@@ -28,8 +44,8 @@ const board = (() => {
 
 const controller = (() => {
     const currentGame = board.currentGame;
-    const player1 = player(board.player1Input.value, 'X');
-    const player2 = player(board.player2Input.value, 'O');
+    const player1 = player('X');
+    const player2 = player('O');
 
     //bind events
     board.squares.forEach((square) => square.addEventListener('click', placeMove));
@@ -44,7 +60,16 @@ const controller = (() => {
     }
 
     const changePlayer = function() {
-      return player1.takeTurn().turn ? 'X' : 'O';
+      const totalWins = player1.wins + player2.wins;
+      const checkIfNewGame = currentGame.every(piece => piece == '');
+      if (totalWins % 2 == 0 && checkIfNewGame) {
+        return 'X';
+      } else if (totalWins % 2 != 0 && checkIfNewGame) {
+        return 'O';
+      } else {
+        return player1.takeTurn().turn ? 'O' : 'X';
+      }
+      
     }
 
     const render = function() {
@@ -53,22 +78,22 @@ const controller = (() => {
     }
 
     const _squareIsEmpty = function() {
-        return this.textContent == "" ? true : false;
+      return this.textContent == "" ? true : false;
     };
 
     const _checkRows = () => {
-        for (let i = 0; i < 3; i++) {
-          const winningRow = [];
-          for (let j = i*3; j < i*3 + 3; j++) {
-            winningRow.push(currentGame[j]);
-          }
-          if (winningRow.every(field => field === 'X')) { 
-            return 'xWins';
-          } else if (winningRow.every(field => field === 'O')) {
-            return 'oWins';
-          } 
+      for (let i = 0; i < 3; i++) {
+        const winningRow = [];
+        for (let j = i*3; j < i*3 + 3; j++) {
+          winningRow.push(currentGame[j]);
         }
+        if (winningRow.every(field => field === 'X')) { 
+          return 'xWins';
+        } else if (winningRow.every(field => field === 'O')) {
+          return 'oWins';
+        } 
       }
+    }
     
     const _checkColumns = () => {
       for (let i = 0; i < 3; i++) {
@@ -101,10 +126,12 @@ const controller = (() => {
       const rows = _checkRows();
       if (diagonals == 'xWins' || columns == 'xWins' || rows == 'xWins') {
         ++player1.wins;
-        console.log('xWins');
+        setTimeout(board.reset, 1200);
+        return 'win';
       } else if (diagonals == 'oWins' || columns == 'oWins' || rows == 'oWins') {
         ++player2.wins;
-        console.log('oWins');
+        setTimeout(board.reset, 1200);
+        return 'win';
       }
     }
 
@@ -116,20 +143,17 @@ const controller = (() => {
         console.log('Player 2 wins the game');
       }
     }
-
     return {player1};
 
 })();
 
-function player(name, token) {
+function player(token) {
   
   let turn = token == 'X' ? false : true;
   let wins = 0;
   //choose 1P or 2P
   //have an opponent
 
-  // const getToken = () => getToken;
-  // const getName = () => name;
   const takeTurn = () => {
     turn = !turn;
     return {turn};
