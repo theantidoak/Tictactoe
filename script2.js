@@ -5,24 +5,56 @@ const board = (() => {
     const player1Input = document.querySelector('#player-1');
     const player2Input = document.querySelector('#player-2');
     const resetButton = document.querySelector('.reset-button');
-    const playerButtons = document.querySelectorAll('.choose-side button');
+    const playerOptions = document.querySelectorAll('.draggables div');
+    const dropbox1 = document.querySelector('#drop1');
+    const dropbox2 = document.querySelector('#drop2');
 
     const currentGame = squares.map((square) => square.textContent);
 
-    playerButtons.forEach((button) => button.addEventListener('click', selectSide));
+    // playerOptions.forEach((button) => button.addEventListener('click', selectSide));
+    playerOptions.forEach((option) => option.addEventListener('dragstart', drag));
+    dropbox1.addEventListener('dragover', allowDrop);
+    dropbox1.addEventListener('drop', drop);
+    dropbox2.addEventListener('dragover', allowDrop);
+    dropbox2.addEventListener('drop', drop);
 
-    function selectSide() {
-      switch (this.getAttribute('class')) {
-        case 'human1':
-          break;
-        case 'bot1':
-          break;
-        case 'human2':
-          break;
-        case 'bot2':
-          break;
-      }
+    function drag(e) {
+      e.dataTransfer.setData("text/plain", e.target.id);
     }
+
+    function allowDrop(e) {
+      e.preventDefault();
+    }
+
+    function drop(e) {
+      e.preventDefault();
+      const data = e.dataTransfer.getData("text/plain");
+      const draggable = document.getElementById(data);
+      e.target.appendChild(draggable);
+      removeAbsolutePostition(draggable);
+      e.target == dropbox1 ? 
+        dropbox1.removeEventListener('drop', drop) : 
+        dropbox2.removeEventListener('drop', drop);
+    }
+
+    const removeAbsolutePostition = (draggable) => {
+      draggable.style.position = 'static';
+    }
+
+    // function selectSide(e) {
+    //   e.preventDefault();
+    //   console.log(e.target);
+    //   switch (this.getAttribute('class')) {
+    //     case 'human1':
+    //       break;
+    //     case 'bot1':
+    //       break;
+    //     case 'human2':
+    //       break;
+    //     case 'bot2':
+    //       break;
+    //   }
+    // }
 
     const updateGame = function() {
         const index = squares.indexOf(this);
@@ -35,6 +67,7 @@ const board = (() => {
           square.removeChild(square.lastChild);
         }
       });
+      
       currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
     }
 
@@ -60,16 +93,11 @@ const controller = (() => {
     }
 
     const changePlayer = function() {
-      const totalWins = player1.wins + player2.wins;
-      const checkIfNewGame = currentGame.every(piece => piece == '');
-      if (totalWins % 2 == 0 && checkIfNewGame) {
-        return 'X';
-      } else if (totalWins % 2 != 0 && checkIfNewGame) {
-        return 'O';
-      } else {
-        return player1.takeTurn().turn ? 'O' : 'X';
-      }
-      
+      const totalGames = player1.wins + player2.wins; // + ties
+      const turn = totalGames % 2 == 0 ? 
+        player1.takeTurn().turn : 
+        player2.takeTurn().turn;
+      return turn ? 'X' : 'O';
     }
 
     const render = function() {
@@ -126,11 +154,13 @@ const controller = (() => {
       const rows = _checkRows();
       if (diagonals == 'xWins' || columns == 'xWins' || rows == 'xWins') {
         ++player1.wins;
-        setTimeout(board.reset, 1200);
+        player1.takeTurn();
+        setTimeout(board.reset, 1000);
         return 'win';
       } else if (diagonals == 'oWins' || columns == 'oWins' || rows == 'oWins') {
         ++player2.wins;
-        setTimeout(board.reset, 1200);
+        player2.takeTurn();
+        setTimeout(board.reset, 1000);
         return 'win';
       }
     }

@@ -15,15 +15,19 @@
   </header>
   <main>
     <div class="choose-side">
-      <div>
+      <div class="left-dropbox">
         <h3>Player X</h3>
-        <button class="human1">Human</button>
-        <button classs="bot1">Bot</button>
+        <div class="dropbox" id="drop1"></div>
       </div>
-      <div>
+      <div class="draggables">
+        <div id="human1" class='positionedP' draggable="true">Player</div>
+        <div id="human2" class='positionedP' draggable="true">Player</div>
+        <div id="bot1" class='positionedB' draggable="true">Bot</div>
+        <div id="bot2" class='positionedB' draggable="true">Bot</div>
+      </div>
+      <div class="right-dropbox">
         <h3>Player O</h3>
-        <button class="human2">Human</button>
-        <button class="bot2">Bot</button>
+        <div class="dropbox" id="drop2"></div>
       </div>
     </div>
     <div class="game-board">
