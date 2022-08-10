@@ -1,6 +1,7 @@
 const dragAndDrop = (() => {
   //cache DOM
   const playerOptions = document.querySelectorAll('.draggables .positioned');
+  const draggables = document.querySelector('.draggables');
   const dropbox1 = document.querySelector('#drop1');
   const dropbox2 = document.querySelector('#drop2');
 
@@ -29,6 +30,18 @@ const dragAndDrop = (() => {
     const draggable = document.getElementById(data);
     this.appendChild(draggable);
     modifyContent.call(this, data);
+    removeNonPlayersAndBegin();
+  }
+
+  function removeNonPlayersAndBegin() {
+    if (dropbox1.firstElementChild && dropbox2.firstElementChild) {
+      playerOptions.forEach((option) => {
+        if (option.parentElement.parentElement == draggables) {
+          option.parentElement.removeChild(option);
+        }
+      })
+      controller.bindOnCommand();
+    }
   }
 
   const modifyContent = function(that) {
@@ -43,8 +56,8 @@ const dragAndDrop = (() => {
         break;
       default:
         target.textContent = that[0] == 'h' ? 
-          `\u{2261} Player` : 
-          `\u{2261} Bot`;
+          `\u{2630} Player` : 
+          `\u{2630} Bot`;
     }
   }
 
@@ -53,7 +66,7 @@ const dragAndDrop = (() => {
       return false;
     }
   }
-  return {dropbox1, dropbox2, playerOptions};
+  return {dropbox1, dropbox2, playerOptions, draggables};
 
 })();
 
@@ -63,7 +76,7 @@ const board = (() => {
   const squares = [...document.querySelectorAll('.game-square')];
   const player1Input = document.querySelector('#player-1');
   const player2Input = document.querySelector('#player-2');
-  const resetButton = document.querySelector('.reset-button');
+  const newGameButton = document.querySelector('.newGame-button');
   
   const currentGame = squares.map((square) => square.textContent);
 
@@ -74,12 +87,16 @@ const board = (() => {
 
   const updateScore = function() {
     dragAndDrop.playerOptions.forEach((option) => {
-      if (option.textContent[0] == `\u{2261}`) return;
+      if (option.textContent[0] == `\u{2630}`) return;
       const content = option.textContent;
       option.textContent = option.parentElement.id == 'drop1' ?
        content.substring(0, content.length-1) + controller.player1.wins :
-       content.substring(0, content.length-1) + controller.player2.wins
+       content.substring(0, content.length-1) + controller.player2.wins;
     })
+  }
+
+  const createNewGame = function() {
+    location.reload();
   }
 
   const reset = function() {
@@ -91,7 +108,7 @@ const board = (() => {
     currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
   }
 
-  return {squares, currentGame, updateBoard, updateScore, player1Input, player2Input, reset, resetButton};
+  return {squares, currentGame, updateBoard, updateScore, player1Input, player2Input, reset, createNewGame, newGameButton};
   
 })();
 
@@ -102,8 +119,13 @@ const controller = (() => {
     
 
     //bind events
-    board.squares.forEach((square) => square.addEventListener('click', placeMove));
-    board.resetButton.addEventListener('click', board.reset);
+    const bindOnCommand = function() {
+      board.squares.forEach((square) => square.addEventListener('click', placeMove));
+    };
+    const removeBind = function() {
+      board.squares.forEach((square) => square.removeEventListener('click', placeMove));
+    }
+    board.newGameButton.addEventListener('click', board.createNewGame);
 
     function placeMove() {
       if (_squareIsEmpty.call(this) == false) return;
@@ -115,11 +137,17 @@ const controller = (() => {
     }
 
     const changePlayer = function() {
-      const totalGames = player1.wins + player2.wins; // + ties
-      const turn = totalGames % 2 == 0 ? 
-        player1.takeTurn().turn : 
-        player2.takeTurn().turn;
-      return turn ? 'X' : 'O';
+      const totalGames = player1.wins + player2.wins + player1.ties; 
+
+      if (currentGame.every((piece) => piece == '') && totalGames % 2 == 0) {
+        player1.takeTurn();
+        return 'X';
+      } else if (currentGame.every((piece) => piece == '') && totalGames % 2 != 0) {
+        player2.takeTurn();
+        return 'O';
+      } else {
+        return player1.takeTurn().turn ? 'X' : 'O';
+      }
     }
 
     const render = function() {
@@ -177,34 +205,52 @@ const controller = (() => {
       if (diagonals == 'xWins' || columns == 'xWins' || rows == 'xWins') {
         ++player1.wins;
         player1.takeTurn();
-        setTimeout(board.reset, 1000);
+        postGameProcess()
       } else if (diagonals == 'oWins' || columns == 'oWins' || rows == 'oWins') {
         ++player2.wins;
         player2.takeTurn();
-        setTimeout(board.reset, 1000);
+        postGameProcess()
+      } else if (currentGame.every((piece) => piece != '')) {
+        ++player1.ties;
+        ++player2.ties;
+        postGameProcess()
       }
     }
 
     function _checkGameOver() {
       if (player1.wins == 3) {
-        console.log('Player 1 wins the game');
+        dragAndDrop.draggables.textContent = 'Player 1 Wins the Game';
+        dragAndDrop.draggables.appendChild(board.newGameButton);
+        removeBind();
       }
       else if (player2.wins == 3) {
-        console.log('Player 2 wins the game');
+        dragAndDrop.draggables.textContent = 'Player 2 Wins the Game';
+        dragAndDrop.draggables.appendChild(board.newGameButton);
+        removeBind();
       }
     }
-    return {player1, player2};
+
+    function postGameProcess() {
+      removeBind();
+      setTimeout(function() {
+        board.reset();
+        bindOnCommand()
+      }, 1000);
+    }
+    return {player1, player2, bindOnCommand};
 })();
 
 
 function player(token) {
-  this.token = token;
+  
   let turn = token == 'X' ? false : true;
   let wins = 0;
+  let ties = 0;
+
 
   const takeTurn = () => {
     turn = !turn;
     return {turn};
   };
-  return {takeTurn, wins, token};
+  return {takeTurn, wins, token, ties};
 }

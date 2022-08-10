@@ -13,7 +13,7 @@ main {
   width: 100%;
 }
 
-.choose-side, .reset {
+.choose-side, .newGame {
   text-align: center;
 }
 
@@ -47,8 +47,8 @@ main {
   display: flex;
   background-color: purple;
   align-items: center;
-  word-spacing: 1rem;
-  padding: .25rem .25rem .25rem .5rem;
+  word-spacing: .75rem;
+  padding: .25rem .25rem .25rem .25rem;
   border-radius: 5px;
 }
 
@@ -87,10 +87,12 @@ main {
 .dropbox {
   width: 5.5rem;
   height: 1.65rem;
-  outline: dotted 2px blue;
+  outline: dotted 2px purple;
   border-radius: 5px;
   display: flex;
   justify-content: center;
+  align-items: center;
+  color: rgba(128, 0, 128, .5);
 }
 
 #drop1, #drop2 {
