@@ -17,17 +17,21 @@
     <div class="choose-side">
       <div class="left-dropbox">
         <h3>Player X</h3>
-        <div class="dropbox" id="drop1"></div>
+        <div class="dropbox" id="drop1" name="X"></div>
       </div>
       <div class="draggables">
-        <div id="human1" class='positionedP' draggable="true">Player</div>
-        <div id="human2" class='positionedP' draggable="true">Player</div>
-        <div id="bot1" class='positionedB' draggable="true">Bot</div>
-        <div id="bot2" class='positionedB' draggable="true">Bot</div>
+        <div class="positionedP">
+          <div id="human1" class="positioned" draggable="true">&#8801 Player</div>
+          <div id="human2" class="positioned" draggable="true">&#8801 Player</div>
+        </div>
+        <div class='positionedB'>
+          <div id="bot1" class="positioned" draggable="true">&#8801 Bot</div>
+          <div id="bot2" class="positioned" draggable="true">&#8801 Bot</div>
+        </div>
       </div>
       <div class="right-dropbox">
         <h3>Player O</h3>
-        <div class="dropbox" id="drop2"></div>
+        <div class="dropbox" id="drop2" name="O"></div>
       </div>
     </div>
     <div class="game-board">
