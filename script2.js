@@ -43,7 +43,6 @@ const dragAndDrop = (() => {
       controller.bindOnCommand();
       controller.assignAItoBot(this);
       if (controller.player1.playerType == 'bot') {
-        
         controller.placeAIMove();
       }
     }
@@ -106,14 +105,14 @@ const board = (() => {
 
   const reset = function() {
     
-    currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
-    setTimeout(function() {
+    
       squares.forEach((square) => {
         while (square.firstChild) {
           square.removeChild(square.lastChild);
         }
       });
-    }, 500);
+    
+    currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
   }
 
   return {squares, currentGame, updateBoard, updateScore, player1Input, player2Input, reset, createNewGame, newGameButton};
@@ -122,6 +121,7 @@ const board = (() => {
 
 const controller = (() => {
     const currentGame = board.currentGame;
+    let piecesPlayed = [];
     const player1 = player(dragAndDrop.dropbox1.getAttribute('name'), dragAndDrop.dropbox1.childNodes);
     const player2 = player(dragAndDrop.dropbox2.getAttribute('name'), dragAndDrop.dropbox2.childNodes);
 
@@ -129,43 +129,38 @@ const controller = (() => {
     const bindOnCommand = function() {
       board.squares.forEach((square) => square.addEventListener('click', placeMove));
     };
-
-    board.squares.forEach((square) => square.addEventListener('click', placeAIMove));
-
     const removeBind = function() {
       board.squares.forEach((square) => square.removeEventListener('click', placeMove));
     }
     board.newGameButton.addEventListener('click', board.createNewGame);
 
+
     function placeMove() {
-      
       if (_squareIsEmpty.call(this) == false) return;
       render(this);
-      player1.gameContinues = true;
       board.updateBoard(this);
-      _checkWin();
+      piecesPlayed.unshift(this.textContent);
+      if ((player1.playerType == 'bot' || 
+        player2.playerType == 'bot') && 
+        _checkWin() == 'continue') {
+        placeAIMove();
+      } else {
+        _checkWin();
+      }
       _checkGameOver();
-      
     }
 
+    // bot vs bot??
     function placeAIMove() {
-      
-      setTimeout(function() {
-        if (player1.gameContinues == false) return;
+      setTimeout(function() { 
         if (board.squares.every(square => square.textContent != '')) return;
         const aiMove = generateOpenSquare();
         render(aiMove);
         board.updateBoard(aiMove);
+        piecesPlayed.unshift(aiMove.textContent);
         _checkWin();
         _checkGameOver();
       }, 500);
-    }
-
-    function aiGoesFirst() {
-      const totalGames = player1.wins + player2.wins + player1.ties; 
-      if (player1.playerType == 'bot' && totalGames % 2 == 0 && player1.gameContinues == true) {
-        setTimeout(placeAIMove, 1000);
-      }
     }
 
     function generateOpenSquare() {
@@ -184,17 +179,22 @@ const controller = (() => {
       player2.playerType = p2type[0] == 'b' ? 'bot' : 'human';
     }
 
+    function aiGoesFirst() {
+      const totalGames = player1.wins + player2.wins + player1.ties; 
+      if (player1.playerType == 'bot' && totalGames % 2 == 0) {
+        setTimeout(placeAIMove, 1000);
+      } else if (player2.playerType == 'bot' && totalGames % 2 != 0) {
+        setTimeout(placeAIMove, 1000);
+      }
+    }
+
     const changePlayer = function() {
       const totalGames = player1.wins + player2.wins + player1.ties; 
-
-      if (currentGame.every((piece) => piece == '') && totalGames % 2 == 0) {
-        player1.takeTurn();
-        return 'X';
-      } else if (currentGame.every((piece) => piece == '') && totalGames % 2 != 0) {
-        player2.takeTurn();
-        return 'O';
+      const newGameArray = currentGame.every((piece) => piece == '');
+      if (newGameArray) {
+        return totalGames % 2 != 0 ? 'O' : 'X'
       } else {
-        return player1.takeTurn().turn ? 'X' : 'O';
+        return piecesPlayed[0] == 'X' ? 'O' : 'X';
       }
     }
 
@@ -246,27 +246,19 @@ const controller = (() => {
     }
 
     function _checkWin() {
-      
-      const diagonals = _checkDiagonals();
-      const columns = _checkColumns();
-      const rows = _checkRows();
-      if (diagonals == 'xWins' || columns == 'xWins' || rows == 'xWins') {
+      const [...winners] = [_checkColumns(), _checkDiagonals(), _checkRows()];
+      if (winners.some((winner) => winner == 'xWins')) {
         ++player1.wins;
-        player1.takeTurn();
-        postGameProcess();
-        player1.gameContinues = false;
-      } else if (diagonals == 'oWins' || columns == 'oWins' || rows == 'oWins') {
+        postGameProcess(); 
+      } else if (winners.some((winner) => winner == 'oWins')) {
         ++player2.wins;
-        player2.takeTurn();
         postGameProcess();
-        player1.gameContinues = false;
       } else if (currentGame.every((piece) => piece != '')) {
         ++player1.ties;
         ++player2.ties;
         postGameProcess();
-        player1.gameContinues = false;
       } else {
-        player2.gameContinues = true;
+        return 'continue';
       }
       
     }
@@ -285,32 +277,26 @@ const controller = (() => {
     }
 
     function postGameProcess() {
-      
       removeBind();
+      setTimeout(function() {
+        board.updateScore();
+        board.reset();
+        bindOnCommand();
+      }, 500);
+      if (player1.wins != 3 && player2.wins != 3) {
+        aiGoesFirst();
+      } 
       
-      
-      board.updateScore();
-      board.reset();
-      bindOnCommand();
-      
-      setTimeout(aiGoesFirst, 500);
     }
-    
-    
+
     return {player1, player2, bindOnCommand, assignAItoBot, placeAIMove};
 })();
 
 
 function player(token, playerType) {
   
-  let turn = token == 'X' ? false : true;
   let wins = 0;
   let ties = 0;
-  this.gameContinues = true;
 
-  const takeTurn = () => {
-    turn = !turn;
-    return {turn};
-  };
-  return {takeTurn, wins, ties, playerType, token, gameContinues};
+  return {wins, ties, playerType, token};
 }
