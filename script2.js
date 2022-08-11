@@ -25,15 +25,15 @@ const dragAndDrop = (() => {
   }
 
   function drop(e) { 
-    if (checkIfEmpty(this) == false) return;
+    if (_checkIfEmpty(this) == false) return;
     const data = e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(data);
     this.appendChild(draggable);
-    modifyContent.call(this, data);
-    removeNonPlayersAndBegin();
+    _modifyContent.call(this, data);
+    _removeNonPlayersAndBegin();
   }
 
-  function removeNonPlayersAndBegin() {
+  function _removeNonPlayersAndBegin() {
     if (dropbox1.firstElementChild && dropbox2.firstElementChild) {
       playerOptions.forEach((option) => {
         if (option.parentElement.parentElement == draggables) {
@@ -41,10 +41,15 @@ const dragAndDrop = (() => {
         }
       })
       controller.bindOnCommand();
+      controller.assignAItoBot(this);
+      if (controller.player1.playerType == 'bot') {
+        
+        controller.placeAIMove();
+      }
     }
   }
 
-  const modifyContent = function(that) {
+  const _modifyContent = function(that) {
     const target = document.getElementById(that);
     const dropBox = this;
     switch (dropBox.id) {
@@ -61,7 +66,7 @@ const dragAndDrop = (() => {
     }
   }
 
-  const checkIfEmpty = function(that) {
+  const _checkIfEmpty = function(that) {
     if (that.classList.contains('dropbox') && that.children.length == 1) {
       return false;
     }
@@ -80,9 +85,9 @@ const board = (() => {
   
   const currentGame = squares.map((square) => square.textContent);
 
-  const updateBoard = function() {
-      const index = squares.indexOf(this);
-      currentGame.splice(index, 1, this.textContent);
+  const updateBoard = function(that) {
+      const index = squares.indexOf(that);
+      currentGame.splice(index, 1, that.textContent);
   };
 
   const updateScore = function() {
@@ -100,12 +105,15 @@ const board = (() => {
   }
 
   const reset = function() {
-    squares.forEach((square) => {
-      while (square.firstChild) {
-        square.removeChild(square.lastChild);
-      }
-    });
+    
     currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
+    setTimeout(function() {
+      squares.forEach((square) => {
+        while (square.firstChild) {
+          square.removeChild(square.lastChild);
+        }
+      });
+    }, 500);
   }
 
   return {squares, currentGame, updateBoard, updateScore, player1Input, player2Input, reset, createNewGame, newGameButton};
@@ -114,26 +122,66 @@ const board = (() => {
 
 const controller = (() => {
     const currentGame = board.currentGame;
-    const player1 = player(dragAndDrop.dropbox1.getAttribute('name'));
-    const player2 = player(dragAndDrop.dropbox2.getAttribute('name'));
-    
+    const player1 = player(dragAndDrop.dropbox1.getAttribute('name'), dragAndDrop.dropbox1.childNodes);
+    const player2 = player(dragAndDrop.dropbox2.getAttribute('name'), dragAndDrop.dropbox2.childNodes);
 
     //bind events
     const bindOnCommand = function() {
       board.squares.forEach((square) => square.addEventListener('click', placeMove));
     };
+
+    board.squares.forEach((square) => square.addEventListener('click', placeAIMove));
+
     const removeBind = function() {
       board.squares.forEach((square) => square.removeEventListener('click', placeMove));
     }
     board.newGameButton.addEventListener('click', board.createNewGame);
 
     function placeMove() {
+      
       if (_squareIsEmpty.call(this) == false) return;
-      render.call(this);
-      board.updateBoard.call(this);
+      render(this);
+      player1.gameContinues = true;
+      board.updateBoard(this);
       _checkWin();
-      board.updateScore();
       _checkGameOver();
+      
+    }
+
+    function placeAIMove() {
+      
+      setTimeout(function() {
+        if (player1.gameContinues == false) return;
+        if (board.squares.every(square => square.textContent != '')) return;
+        const aiMove = generateOpenSquare();
+        render(aiMove);
+        board.updateBoard(aiMove);
+        _checkWin();
+        _checkGameOver();
+      }, 500);
+    }
+
+    function aiGoesFirst() {
+      const totalGames = player1.wins + player2.wins + player1.ties; 
+      if (player1.playerType == 'bot' && totalGames % 2 == 0 && player1.gameContinues == true) {
+        setTimeout(placeAIMove, 1000);
+      }
+    }
+
+    function generateOpenSquare() {
+      const randomNumber = Math.floor(Math.random()*9);
+      const openSquare = board.squares[randomNumber];
+      
+      const aiMove = openSquare.textContent != "" ? generateOpenSquare() : openSquare;
+      return aiMove;
+    }
+
+    const assignAItoBot = function() {
+      const p1type = this.player1.playerType[1].id;
+      const p2type = this.player2.playerType[1].id;
+
+      player1.playerType = p1type[0] == 'b' ? 'bot' : 'human';
+      player2.playerType = p2type[0] == 'b' ? 'bot' : 'human';
     }
 
     const changePlayer = function() {
@@ -150,10 +198,10 @@ const controller = (() => {
       }
     }
 
-    const render = function() {
+    const render = function(that) {
         const move = document.createTextNode(changePlayer());
-        this.appendChild(move);
-    }
+        that.appendChild(move);
+      }
 
     const _squareIsEmpty = function() {
       return this.textContent == "" ? true : false;
@@ -188,7 +236,6 @@ const controller = (() => {
     }
     
     const _checkDiagonals = () => {
-      console.log(currentGame);
       const firstDiagonal = [currentGame[0], currentGame[4], currentGame[8]];
       const secondDiagonal = [currentGame[2], currentGame[4], currentGame[6]];
       if (firstDiagonal.every(field => field === 'X') || secondDiagonal.every(field => field === 'X')) {
@@ -199,22 +246,29 @@ const controller = (() => {
     }
 
     function _checkWin() {
+      
       const diagonals = _checkDiagonals();
       const columns = _checkColumns();
       const rows = _checkRows();
       if (diagonals == 'xWins' || columns == 'xWins' || rows == 'xWins') {
         ++player1.wins;
         player1.takeTurn();
-        postGameProcess()
+        postGameProcess();
+        player1.gameContinues = false;
       } else if (diagonals == 'oWins' || columns == 'oWins' || rows == 'oWins') {
         ++player2.wins;
         player2.takeTurn();
-        postGameProcess()
+        postGameProcess();
+        player1.gameContinues = false;
       } else if (currentGame.every((piece) => piece != '')) {
         ++player1.ties;
         ++player2.ties;
-        postGameProcess()
+        postGameProcess();
+        player1.gameContinues = false;
+      } else {
+        player2.gameContinues = true;
       }
+      
     }
 
     function _checkGameOver() {
@@ -231,26 +285,32 @@ const controller = (() => {
     }
 
     function postGameProcess() {
+      
       removeBind();
-      setTimeout(function() {
-        board.reset();
-        bindOnCommand()
-      }, 1000);
+      
+      
+      board.updateScore();
+      board.reset();
+      bindOnCommand();
+      
+      setTimeout(aiGoesFirst, 500);
     }
-    return {player1, player2, bindOnCommand};
+    
+    
+    return {player1, player2, bindOnCommand, assignAItoBot, placeAIMove};
 })();
 
 
-function player(token) {
+function player(token, playerType) {
   
   let turn = token == 'X' ? false : true;
   let wins = 0;
   let ties = 0;
-
+  this.gameContinues = true;
 
   const takeTurn = () => {
     turn = !turn;
     return {turn};
   };
-  return {takeTurn, wins, token, ties};
+  return {takeTurn, wins, ties, playerType, token, gameContinues};
 }
