@@ -3,20 +3,21 @@ const dragAndDrop = (() => {
   const playerOptions = document.querySelectorAll('.draggables .positioned');
   const draggables = document.querySelector('.draggables');
   const dropbox1 = document.querySelector('#drop1');
-  const dropbox2 = document.querySelector('#drop2');
+  const dropbox2 = document.querySelector('#drop2')
 
   //bind events
   playerOptions.forEach((option) => option.addEventListener('dragstart', _drag));
   playerOptions.forEach((option) => option.parentElement.addEventListener('dragover', _allowDrop));
   playerOptions.forEach((option) => option.parentElement.addEventListener('drop', _drop));
-  dropbox1.addEventListener('dragstart', _drag);
-  dropbox1.addEventListener('dragover', _allowDrop);
-  dropbox1.addEventListener('drop', _drop);
-  dropbox2.addEventListener('dragstart', _drag);
-  dropbox2.addEventListener('dragover', _allowDrop);
-  dropbox2.addEventListener('drop', _drop);
+  dropbox1.parentElement.addEventListener('dragstart', _drag);
+  dropbox1.parentElement.addEventListener('dragover', _allowDrop);
+  dropbox1.parentElement.addEventListener('drop', _drop);
+  dropbox2.parentElement.addEventListener('dragstart', _drag);
+  dropbox2.parentElement.addEventListener('dragover', _allowDrop);
+  dropbox2.parentElement.addEventListener('drop', _drop);
 
   function _drag(e) {
+    console.log(e.target);
     e.dataTransfer.setData("text/plain", e.target.id);
   }
 
@@ -28,17 +29,26 @@ const dragAndDrop = (() => {
     if (_checkIfEmpty.call(this) == false) return;
     const data = e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(data);
-    this.appendChild(draggable);
+    preventWrongDrops.call(this, draggable, data);
     _modifyContent.call(this, data);
-    _removeNonPlayersAndBegin();
+    _removeNonPlayersAndBegin.call(this ,draggable);
+  }
+
+  function preventWrongDrops(draggable, data) {
+    if (this.getAttribute('class')[0] == 'p') {
+      data[0] == 'b' ? draggables.lastElementChild.appendChild(draggable) : draggables.firstElementChild.appendChild(draggable) 
+    } else {
+      this.children[1].appendChild(draggable);
+    }
   }
 
   function _removeNonPlayersAndBegin() {
     const dropboxesFilled = dropbox1.firstElementChild && dropbox2.firstElementChild;
+    
     if (dropboxesFilled) {
       playerOptions.forEach((option) => {
         if (option.parentElement.parentElement == draggables) {
-          option.parentElement.removeChild(option);
+          option.style.display = 'none';
         }
       })
       _init();
@@ -47,13 +57,13 @@ const dragAndDrop = (() => {
 
   function _init() {
     controller.bindtoSquares();
-    controller.assignAItoBot(this);
+    controller.assignAItoBot();
     controller.aiGoesFirst();
   }
 
   const _modifyContent = function(that) {
     const draggable = document.getElementById(that);
-    const dropBox = this;
+    const dropBox = this.children[1];
     switch (dropBox.id) {
       case 'drop1':
         draggable.textContent = that[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
@@ -66,6 +76,17 @@ const dragAndDrop = (() => {
           `\u{2630} Player` : 
           `\u{2630} Bot`;
     }
+    _changeColors(dropBox, that)
+  }
+
+  const _changeColors = function(dropBox, draggableID) {
+    const dropBoxID = dropBox.getAttribute('class')[0];
+    if (dropBoxID == 'd') {
+      dropBox.parentElement.firstElementChild.style.color = draggableID[0] == 'h' ? 'blue' : 'red';
+    } else if ((!dropbox1.firstElementChild || !dropbox2.firstElementChild && dropBoxID == 'p') && (dropBoxID == 'p')) {
+      dropbox1.parentElement.firstElementChild.style.color = 'black';
+      dropbox2.parentElement.firstElementChild.style.color = 'black';
+    } 
   }
 
   const _checkIfEmpty = function() {
@@ -172,8 +193,8 @@ const controller = (() => {
     }
 
     const assignAItoBot = function() {
-      const p1type = this.player1.playerType[1].id || this.player1.playerType;
-      const p2type = this.player2.playerType[1].id || this.player2.playerType;
+      const p1type = this.player1.playerType[0].id || this.player1.playerType;
+      const p2type = this.player2.playerType[0].id || this.player2.playerType;
       const noBots = p1type[0] == 'h' && p2type[0] == 'h';
       player1.playerType = p1type[0] == 'b' ? 'bot' : 'human';
       player2.playerType = p2type[0] == 'b' ? 'bot' : 'human';
@@ -200,8 +221,18 @@ const controller = (() => {
     }
 
     const _render = function(that) {
-        const move = document.createTextNode(_changePlayer());
-        that.appendChild(move);
+      const token = _changePlayer();
+      const move = document.createTextNode(token);
+      giveColorToToken(that, token);
+      that.appendChild(move);
+    }
+
+    const giveColorToToken = function(that, token) {
+      if (token == 'X') {
+        that.style.color = player1.playerType == 'human' ? 'blue' : 'red';
+      } else {
+        that.style.color = player2.playerType == 'human' ? 'blue' : 'red';
+      };
     }
 
     const _squareIsEmpty = function() {
