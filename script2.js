@@ -6,26 +6,26 @@ const dragAndDrop = (() => {
   const dropbox2 = document.querySelector('#drop2');
 
   //bind events
-  playerOptions.forEach((option) => option.addEventListener('dragstart', drag));
-  playerOptions.forEach((option) => option.parentElement.addEventListener('dragover', allowDrop));
-  playerOptions.forEach((option) => option.parentElement.addEventListener('drop', drop));
-  dropbox1.addEventListener('dragstart', drag);
-  dropbox1.addEventListener('dragover', allowDrop);
-  dropbox1.addEventListener('drop', drop);
-  dropbox2.addEventListener('dragstart', drag);
-  dropbox2.addEventListener('dragover', allowDrop);
-  dropbox2.addEventListener('drop', drop);
+  playerOptions.forEach((option) => option.addEventListener('dragstart', _drag));
+  playerOptions.forEach((option) => option.parentElement.addEventListener('dragover', _allowDrop));
+  playerOptions.forEach((option) => option.parentElement.addEventListener('drop', _drop));
+  dropbox1.addEventListener('dragstart', _drag);
+  dropbox1.addEventListener('dragover', _allowDrop);
+  dropbox1.addEventListener('drop', _drop);
+  dropbox2.addEventListener('dragstart', _drag);
+  dropbox2.addEventListener('dragover', _allowDrop);
+  dropbox2.addEventListener('drop', _drop);
 
-  function drag(e) {
+  function _drag(e) {
     e.dataTransfer.setData("text/plain", e.target.id);
   }
 
-  function allowDrop(e) {
+  function _allowDrop(e) {
     e.preventDefault();
   }
 
-  function drop(e) { 
-    if (_checkIfEmpty(this) == false) return;
+  function _drop(e) { 
+    if (_checkIfEmpty.call(this) == false) return;
     const data = e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(data);
     this.appendChild(draggable);
@@ -34,39 +34,42 @@ const dragAndDrop = (() => {
   }
 
   function _removeNonPlayersAndBegin() {
-    if (dropbox1.firstElementChild && dropbox2.firstElementChild) {
+    const dropboxesFilled = dropbox1.firstElementChild && dropbox2.firstElementChild;
+    if (dropboxesFilled) {
       playerOptions.forEach((option) => {
         if (option.parentElement.parentElement == draggables) {
           option.parentElement.removeChild(option);
         }
       })
-      controller.bindOnCommand();
-      controller.assignAItoBot(this);
-      if (controller.player1.playerType == 'bot') {
-        controller.placeAIMove();
-      }
+      _init();
     }
   }
 
+  function _init() {
+    controller.bindtoSquares();
+    controller.assignAItoBot(this);
+    controller.aiGoesFirst();
+  }
+
   const _modifyContent = function(that) {
-    const target = document.getElementById(that);
+    const draggable = document.getElementById(that);
     const dropBox = this;
     switch (dropBox.id) {
       case 'drop1':
-        target.textContent = that[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
+        draggable.textContent = that[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
         break;
       case 'drop2':
-        target.textContent = that[0] == 'h' ? 'P2 : 0' : 'B2 : 0';
+        draggable.textContent = that[0] == 'h' ? 'P2 : 0' : 'B2 : 0';
         break;
       default:
-        target.textContent = that[0] == 'h' ? 
+        draggable.textContent = that[0] == 'h' ? 
           `\u{2630} Player` : 
           `\u{2630} Bot`;
     }
   }
 
-  const _checkIfEmpty = function(that) {
-    if (that.classList.contains('dropbox') && that.children.length == 1) {
+  const _checkIfEmpty = function() {
+    if (this.classList.contains('dropbox') && this.children.length == 1) {
       return false;
     }
   }
@@ -78,8 +81,6 @@ const board = (() => {
 
   //cache DOM
   const squares = [...document.querySelectorAll('.game-square')];
-  const player1Input = document.querySelector('#player-1');
-  const player2Input = document.querySelector('#player-2');
   const newGameButton = document.querySelector('.newGame-button');
   
   const currentGame = squares.map((square) => square.textContent);
@@ -91,45 +92,51 @@ const board = (() => {
 
   const updateScore = function() {
     dragAndDrop.playerOptions.forEach((option) => {
-      if (option.textContent[0] == `\u{2630}`) return;
       const content = option.textContent;
+      if (content[0] == `\u{2630}`) return;
       option.textContent = option.parentElement.id == 'drop1' ?
        content.substring(0, content.length-1) + controller.player1.wins :
        content.substring(0, content.length-1) + controller.player2.wins;
     })
+  };
+
+  function displayGameOver() {
+    if (controller.player1.wins == 3) {
+      dragAndDrop.draggables.textContent = 'Player 1 Wins the Game';
+    } else {
+      dragAndDrop.draggables.textContent = 'Player 2 Wins the Game';
+    }
+    dragAndDrop.draggables.appendChild(board.newGameButton);
   }
 
   const createNewGame = function() {
     location.reload();
-  }
+  };
 
   const reset = function() {
-    
-    
       squares.forEach((square) => {
         while (square.firstChild) {
           square.removeChild(square.lastChild);
         }
       });
-    
     currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
   }
 
-  return {squares, currentGame, updateBoard, updateScore, player1Input, player2Input, reset, createNewGame, newGameButton};
+  return {squares, currentGame, newGameButton, updateBoard, updateScore, displayGameOver, reset, createNewGame};
   
 })();
 
 const controller = (() => {
     const currentGame = board.currentGame;
-    let piecesPlayed = [];
+    const piecesPlayed = [];
     const player1 = player(dragAndDrop.dropbox1.getAttribute('name'), dragAndDrop.dropbox1.childNodes);
     const player2 = player(dragAndDrop.dropbox2.getAttribute('name'), dragAndDrop.dropbox2.childNodes);
 
     //bind events
-    const bindOnCommand = function() {
+    const bindtoSquares = function() {
       board.squares.forEach((square) => square.addEventListener('click', placeMove));
     };
-    const removeBind = function() {
+    const _removeBind = function() {
       board.squares.forEach((square) => square.removeEventListener('click', placeMove));
     }
     board.newGameButton.addEventListener('click', board.createNewGame);
@@ -137,58 +144,52 @@ const controller = (() => {
 
     function placeMove() {
       if (_squareIsEmpty.call(this) == false) return;
-      render(this);
+      _render(this);
       board.updateBoard(this);
       piecesPlayed.unshift(this.textContent);
-      if ((player1.playerType == 'bot' || 
-        player2.playerType == 'bot') && 
-        _checkWin() == 'continue') {
-        placeAIMove();
-      } else {
-        _checkWin();
-      }
-      _checkGameOver();
+      const noWinner = _checkWin();
+      if (assignAItoBot.call(controller) == 'bot' && 
+        noWinner) {
+        _removeBind();
+        setTimeout(_placeAIMove, 500);
+      } 
     }
 
-    // bot vs bot??
-    function placeAIMove() {
-      setTimeout(function() { 
-        if (board.squares.every(square => square.textContent != '')) return;
-        const aiMove = generateOpenSquare();
-        render(aiMove);
-        board.updateBoard(aiMove);
-        piecesPlayed.unshift(aiMove.textContent);
-        _checkWin();
-        _checkGameOver();
-      }, 500);
+    function _placeAIMove() {
+      const aiMove = _generateOpenSquare();
+      _render(aiMove);
+      board.updateBoard(aiMove);
+      piecesPlayed.unshift(aiMove.textContent);
+      _checkWin();
     }
 
-    function generateOpenSquare() {
+    function _generateOpenSquare() {
       const randomNumber = Math.floor(Math.random()*9);
       const openSquare = board.squares[randomNumber];
-      
-      const aiMove = openSquare.textContent != "" ? generateOpenSquare() : openSquare;
+      const aiMove = openSquare.textContent != "" ? 
+        _generateOpenSquare() : openSquare;
       return aiMove;
     }
 
     const assignAItoBot = function() {
-      const p1type = this.player1.playerType[1].id;
-      const p2type = this.player2.playerType[1].id;
-
+      const p1type = this.player1.playerType[1].id || this.player1.playerType;
+      const p2type = this.player2.playerType[1].id || this.player2.playerType;
+      const noBots = p1type[0] == 'h' && p2type[0] == 'h';
       player1.playerType = p1type[0] == 'b' ? 'bot' : 'human';
       player2.playerType = p2type[0] == 'b' ? 'bot' : 'human';
+      return noBots ? 'noBot' : 'bot';
     }
 
     function aiGoesFirst() {
       const totalGames = player1.wins + player2.wins + player1.ties; 
-      if (player1.playerType == 'bot' && totalGames % 2 == 0) {
-        setTimeout(placeAIMove, 1000);
-      } else if (player2.playerType == 'bot' && totalGames % 2 != 0) {
-        setTimeout(placeAIMove, 1000);
-      }
+      if ((player1.playerType == 'bot' && totalGames % 2 == 0) || 
+        (player2.playerType == 'bot' && totalGames % 2 != 0)) {
+          _removeBind();
+          setTimeout(_placeAIMove, 500);
+      } 
     }
 
-    const changePlayer = function() {
+    const _changePlayer = function() {
       const totalGames = player1.wins + player2.wins + player1.ties; 
       const newGameArray = currentGame.every((piece) => piece == '');
       if (newGameArray) {
@@ -198,10 +199,10 @@ const controller = (() => {
       }
     }
 
-    const render = function(that) {
-        const move = document.createTextNode(changePlayer());
+    const _render = function(that) {
+        const move = document.createTextNode(_changePlayer());
         that.appendChild(move);
-      }
+    }
 
     const _squareIsEmpty = function() {
       return this.textContent == "" ? true : false;
@@ -249,54 +250,38 @@ const controller = (() => {
       const [...winners] = [_checkColumns(), _checkDiagonals(), _checkRows()];
       if (winners.some((winner) => winner == 'xWins')) {
         ++player1.wins;
-        postGameProcess(); 
       } else if (winners.some((winner) => winner == 'oWins')) {
         ++player2.wins;
-        postGameProcess();
       } else if (currentGame.every((piece) => piece != '')) {
         ++player1.ties;
         ++player2.ties;
-        postGameProcess();
       } else {
-        return 'continue';
+        bindtoSquares();
+        return true;
       }
-      
+      _postGameProcess();
     }
 
-    function _checkGameOver() {
-      if (player1.wins == 3) {
-        dragAndDrop.draggables.textContent = 'Player 1 Wins the Game';
-        dragAndDrop.draggables.appendChild(board.newGameButton);
-        removeBind();
-      }
-      else if (player2.wins == 3) {
-        dragAndDrop.draggables.textContent = 'Player 2 Wins the Game';
-        dragAndDrop.draggables.appendChild(board.newGameButton);
-        removeBind();
-      }
-    }
-
-    function postGameProcess() {
-      removeBind();
-      setTimeout(function() {
-        board.updateScore();
-        board.reset();
-        bindOnCommand();
-      }, 500);
+    function _postGameProcess() {
+      _removeBind();
+      board.updateScore();
       if (player1.wins != 3 && player2.wins != 3) {
-        aiGoesFirst();
-      } 
-      
+        setTimeout(function() {
+          board.reset();
+          aiGoesFirst();
+          bindtoSquares();
+        }, 500);
+      } else {
+        board.displayGameOver();
+      }
     }
 
-    return {player1, player2, bindOnCommand, assignAItoBot, placeAIMove};
+    return {player1, player2, bindtoSquares, assignAItoBot, aiGoesFirst};
 })();
 
 
 function player(token, playerType) {
-  
   let wins = 0;
   let ties = 0;
-
   return {wins, ties, playerType, token};
 }
