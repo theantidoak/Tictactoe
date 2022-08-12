@@ -17,7 +17,6 @@ const dragAndDrop = (() => {
   dropbox2.parentElement.addEventListener('drop', _drop);
 
   function _drag(e) {
-    console.log(e.target);
     e.dataTransfer.setData("text/plain", e.target.id);
   }
 
@@ -26,11 +25,12 @@ const dragAndDrop = (() => {
   }
 
   function _drop(e) { 
-    if (_checkIfEmpty.call(this) == false) return;
+    // _checkIfEmpty.call(this);
     const data = e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(data);
     preventWrongDrops.call(this, draggable, data);
     _modifyContent.call(this, data);
+    _changeColors.call(this, data, e.target);
     _removeNonPlayersAndBegin.call(this ,draggable);
   }
 
@@ -44,11 +44,10 @@ const dragAndDrop = (() => {
 
   function _removeNonPlayersAndBegin() {
     const dropboxesFilled = dropbox1.firstElementChild && dropbox2.firstElementChild;
-    
     if (dropboxesFilled) {
       playerOptions.forEach((option) => {
         if (option.parentElement.parentElement == draggables) {
-          option.style.display = 'none';
+          option.parentElement.parentElement.style.display = 'none';
         }
       })
       _init();
@@ -61,39 +60,43 @@ const dragAndDrop = (() => {
     controller.aiGoesFirst();
   }
 
-  const _modifyContent = function(that) {
-    const draggable = document.getElementById(that);
-    const dropBox = this.children[1];
+  const _modifyContent = function(draggableID) {
+    const draggable = document.getElementById(draggableID);
+    const dropBox = this.children[1] || this.children[0];
     switch (dropBox.id) {
       case 'drop1':
-        draggable.textContent = that[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
+        draggable.textContent = draggableID[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
         break;
       case 'drop2':
-        draggable.textContent = that[0] == 'h' ? 'P2 : 0' : 'B2 : 0';
+        draggable.textContent = draggableID[0] == 'h' ? 'P2 : 0' : 'B2 : 0';
         break;
       default:
-        draggable.textContent = that[0] == 'h' ? 
-          `\u{2630} Player` : 
-          `\u{2630} Bot`;
+        draggable.textContent = draggableID[0] == 'h' ? 
+          `Choose Player` : 
+          `Choose Bot`;
     }
-    _changeColors(dropBox, that)
   }
 
-  const _changeColors = function(dropBox, draggableID) {
+  const _changeColors = function(draggableID, eventTarget) {
+    const dropBox = this.children[1] || this.children[0];
     const dropBoxID = dropBox.getAttribute('class')[0];
+    console.log(eventTarget);
     if (dropBoxID == 'd') {
       dropBox.parentElement.firstElementChild.style.color = draggableID[0] == 'h' ? 'blue' : 'red';
-    } else if ((!dropbox1.firstElementChild || !dropbox2.firstElementChild && dropBoxID == 'p') && (dropBoxID == 'p')) {
+    } else if (dropBoxID == 'p' && eventTarget.id != draggableID && eventTarget.id[0] == draggableID[0]) {
       dropbox1.parentElement.firstElementChild.style.color = 'black';
       dropbox2.parentElement.firstElementChild.style.color = 'black';
     } 
   }
 
-  const _checkIfEmpty = function() {
-    if (this.classList.contains('dropbox') && this.children.length == 1) {
-      return false;
-    }
-  }
+  // const _checkIfEmpty = function() {
+  //   const dropbox = this.children[1];
+  //   if (this.getAttribute('class')[0] != 'p' && dropbox.firstElementChild) {
+  //     dropbox.firstElementChild.id[0] == 'h' ? draggables.firstElementChild.appendChild(dropbox.firstElementChild) :
+  //     draggables.lastElementChild.appendChild(dropbox.firstElementChild);
+  //     _modifyContent.call(this, dropbox)
+  //   }
+  // }
   return {dropbox1, dropbox2, playerOptions, draggables};
 
 })();
@@ -114,7 +117,7 @@ const board = (() => {
   const updateScore = function() {
     dragAndDrop.playerOptions.forEach((option) => {
       const content = option.textContent;
-      if (content[0] == `\u{2630}`) return;
+      if (content[0] == `C`) return;
       option.textContent = option.parentElement.id == 'drop1' ?
        content.substring(0, content.length-1) + controller.player1.wins :
        content.substring(0, content.length-1) + controller.player2.wins;
@@ -193,8 +196,8 @@ const controller = (() => {
     }
 
     const assignAItoBot = function() {
-      const p1type = this.player1.playerType[0].id || this.player1.playerType;
-      const p2type = this.player2.playerType[0].id || this.player2.playerType;
+      const p1type = this.player1.playerType[1].id || this.player1.playerType;
+      const p2type = this.player2.playerType[1].id || this.player2.playerType;
       const noBots = p1type[0] == 'h' && p2type[0] == 'h';
       player1.playerType = p1type[0] == 'b' ? 'bot' : 'human';
       player2.playerType = p2type[0] == 'b' ? 'bot' : 'human';
