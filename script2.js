@@ -29,6 +29,7 @@ const dragAndDrop = (() => {
   };
 
   function _drag(e) {
+    e.stopPropagation();
     e.dataTransfer.setData("text/plain", e.target.id);
   }
 
