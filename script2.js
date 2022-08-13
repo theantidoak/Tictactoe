@@ -16,6 +16,18 @@ const dragAndDrop = (() => {
   dropbox2.parentElement.addEventListener('dragover', _allowDrop);
   dropbox2.parentElement.addEventListener('drop', _drop);
 
+  const _removeDragAndDropBind = function() {
+    playerOptions.forEach((option) => option.removeEventListener('dragstart', _drag));
+    playerOptions.forEach((option) => option.parentElement.removeEventListener('dragover', _allowDrop));
+    playerOptions.forEach((option) => option.parentElement.removeEventListener('drop', _drop));
+    dropbox1.parentElement.removeEventListener('dragstart', _drag);
+    dropbox1.parentElement.removeEventListener('dragover', _allowDrop);
+    dropbox1.parentElement.removeEventListener('drop', _drop);
+    dropbox2.parentElement.removeEventListener('dragstart', _drag);
+    dropbox2.parentElement.removeEventListener('dragover', _allowDrop);
+    dropbox2.parentElement.removeEventListener('drop', _drop);
+  };
+
   function _drag(e) {
     e.dataTransfer.setData("text/plain", e.target.id);
   }
@@ -24,25 +36,28 @@ const dragAndDrop = (() => {
     e.preventDefault();
   }
 
-  function _drop(e) { 
-    // _checkIfEmpty.call(this);
-    const data = e.dataTransfer.getData("text/plain");
-    const draggable = document.getElementById(data);
-    preventWrongDrops.call(this, draggable, data);
-    _modifyContent.call(this, data);
-    _changeColors.call(this, data, e.target);
-    _removeNonPlayersAndBegin.call(this ,draggable);
+  function _drop(e) {
+    e.preventDefault(); 
+    const draggableID = e.dataTransfer.getData("text/plain");
+    const draggable = document.getElementById(draggableID);
+    const previousPlayer = this.children.length > 1 ? this.children[1].firstElementChild : null;
+    _preventWrongDrops.call(this, draggable, draggableID);
+    _returnPreviousPlayer.call(this, previousPlayer);
+    _modifyContent.call(this, draggableID, previousPlayer);
+    _changeColors.call(this, draggableID, e.target);
+    _removeNonPlayersAndBegin.call(this);
   }
 
-  function preventWrongDrops(draggable, data) {
+  const _preventWrongDrops = function(draggable, draggableID) {
     if (this.getAttribute('class')[0] == 'p') {
-      data[0] == 'b' ? draggables.lastElementChild.appendChild(draggable) : draggables.firstElementChild.appendChild(draggable) 
+      draggableID[0] == 'b' ? draggables.lastElementChild.appendChild(draggable) : 
+      draggables.firstElementChild.appendChild(draggable) 
     } else {
       this.children[1].appendChild(draggable);
     }
   }
 
-  function _removeNonPlayersAndBegin() {
+  const _removeNonPlayersAndBegin = function() {
     const dropboxesFilled = dropbox1.firstElementChild && dropbox2.firstElementChild;
     if (dropboxesFilled) {
       playerOptions.forEach((option) => {
@@ -54,18 +69,19 @@ const dragAndDrop = (() => {
     }
   }
 
-  function _init() {
+  const _init = function() {
     controller.bindtoSquares();
     controller.assignAItoBot();
     controller.aiGoesFirst();
+    _removeDragAndDropBind();
   }
 
-  const _modifyContent = function(draggableID) {
+  const _modifyContent = function(draggableID, previousPlayer) {
     const draggable = document.getElementById(draggableID);
     const dropBox = this.children[1] || this.children[0];
     switch (dropBox.id) {
       case 'drop1':
-        draggable.textContent = draggableID[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
+          draggable.textContent = draggableID[0] == 'h' ? 'P1 : 0' : 'B1 : 0';
         break;
       case 'drop2':
         draggable.textContent = draggableID[0] == 'h' ? 'P2 : 0' : 'B2 : 0';
@@ -75,12 +91,14 @@ const dragAndDrop = (() => {
           `Choose Player` : 
           `Choose Bot`;
     }
+    if (previousPlayer) {
+      previousPlayer.textContent = previousPlayer.textContent[0] == 'P' ? 'Choose Player' : 'Choose Bot';
+    };
   }
 
   const _changeColors = function(draggableID, eventTarget) {
     const dropBox = this.children[1] || this.children[0];
     const dropBoxID = dropBox.getAttribute('class')[0];
-    console.log(eventTarget);
     if (dropBoxID == 'd') {
       dropBox.parentElement.firstElementChild.style.color = draggableID[0] == 'h' ? 'blue' : 'red';
     } else if (dropBoxID == 'p' && eventTarget.id != draggableID && eventTarget.id[0] == draggableID[0]) {
@@ -89,17 +107,17 @@ const dragAndDrop = (() => {
     } 
   }
 
-  // const _checkIfEmpty = function() {
-  //   const dropbox = this.children[1];
-  //   if (this.getAttribute('class')[0] != 'p' && dropbox.firstElementChild) {
-  //     dropbox.firstElementChild.id[0] == 'h' ? draggables.firstElementChild.appendChild(dropbox.firstElementChild) :
-  //     draggables.lastElementChild.appendChild(dropbox.firstElementChild);
-  //     _modifyContent.call(this, dropbox)
-  //   }
-  // }
+  const _returnPreviousPlayer = function(previousPlayer) {
+    if (this.getAttribute('class')[0] != 'p' && previousPlayer != null) {
+      previousPlayer.id[0] == 'h' ? draggables.firstElementChild.appendChild(previousPlayer) :
+      draggables.lastElementChild.appendChild(previousPlayer);
+    }
+  }
+  
   return {dropbox1, dropbox2, playerOptions, draggables};
 
 })();
+
 
 const board = (() => {
 
@@ -124,13 +142,14 @@ const board = (() => {
     })
   };
 
-  function displayGameOver() {
+  const displayGameOver = function() {
+    const header = document.querySelector('header');
     if (controller.player1.wins == 3) {
-      dragAndDrop.draggables.textContent = 'Player 1 Wins the Game';
+      header.textContent = 'Player One Wins the Game';
     } else {
-      dragAndDrop.draggables.textContent = 'Player 2 Wins the Game';
+      header.textContent = 'Player Two Wins the Game';
     }
-    dragAndDrop.draggables.appendChild(board.newGameButton);
+    header.appendChild(newGameButton);
   }
 
   const createNewGame = function() {
@@ -179,7 +198,7 @@ const controller = (() => {
       } 
     }
 
-    function _placeAIMove() {
+    const _placeAIMove = function() {
       const aiMove = _generateOpenSquare();
       _render(aiMove);
       board.updateBoard(aiMove);
@@ -187,7 +206,7 @@ const controller = (() => {
       _checkWin();
     }
 
-    function _generateOpenSquare() {
+    const _generateOpenSquare = function() {
       const randomNumber = Math.floor(Math.random()*9);
       const openSquare = board.squares[randomNumber];
       const aiMove = openSquare.textContent != "" ? 
@@ -204,7 +223,7 @@ const controller = (() => {
       return noBots ? 'noBot' : 'bot';
     }
 
-    function aiGoesFirst() {
+    const aiGoesFirst = function() {
       const totalGames = player1.wins + player2.wins + player1.ties; 
       if ((player1.playerType == 'bot' && totalGames % 2 == 0) || 
         (player2.playerType == 'bot' && totalGames % 2 != 0)) {
@@ -280,7 +299,7 @@ const controller = (() => {
       } 
     }
 
-    function _checkWin() {
+    const _checkWin = function() {
       const [...winners] = [_checkColumns(), _checkDiagonals(), _checkRows()];
       if (winners.some((winner) => winner == 'xWins')) {
         ++player1.wins;
@@ -296,7 +315,7 @@ const controller = (() => {
       _postGameProcess();
     }
 
-    function _postGameProcess() {
+    const _postGameProcess = function() {
       _removeBind();
       board.updateScore();
       if (player1.wins != 3 && player2.wins != 3) {
@@ -315,6 +334,8 @@ const controller = (() => {
 
 
 function player(token, playerType) {
+  this.token = token;
+  this.playerType = playerType;
   let wins = 0;
   let ties = 0;
   return {wins, ties, playerType, token};
