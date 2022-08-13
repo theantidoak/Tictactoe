@@ -39,7 +39,8 @@ header h1 {
 }
 
 main {
-  width: 100%;
+  width: 25rem;
+  margin: 0 auto;
 }
 
 .choose-side, .newGame {
@@ -57,7 +58,7 @@ main {
   width: max-content;
   padding: .5rem;
   z-index: 1;
-  transition: all ease .5s;
+  transition: all ease .1s;
 }
 
 .newGame-button:active {

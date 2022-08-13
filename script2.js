@@ -5,8 +5,8 @@ const dragAndDrop = (() => {
   const dropbox1 = document.querySelector('#drop1');
   const dropbox2 = document.querySelector('#drop2');
 
-  // const _mobileDraggableID = [];
-  // const _previousMobile = [];
+  const _mobileDraggableID = [];
+
 
   //bind events
 
@@ -32,9 +32,9 @@ const dragAndDrop = (() => {
     dropbox2.parentElement.removeEventListener('drop', _drop);
   };
 
-  // playerOptions.forEach((option) => option.addEventListener('touchstart', _drop));
-  // dropbox1.parentElement.addEventListener('touchstart', _drop);
-  // dropbox2.parentElement.addEventListener('touchstart', _drop);
+  playerOptions.forEach((option) => option.parentElement.addEventListener('touchstart', _drop));
+  dropbox1.parentElement.addEventListener('touchstart', _drop);
+  dropbox2.parentElement.addEventListener('touchstart', _drop);
 
 
   function _drag(e) {
@@ -48,16 +48,14 @@ const dragAndDrop = (() => {
   }
 
   function _drop(e) {
-  //  console.log(this)
-  //   if (_mobileDraggableID.length == 0 && e.type == 'touchstart') {
-  //     _mobileDraggableID.push(this.id);
-  //     _previousMobile.push(this);
-  //     return;
-  //   } 
-  //   const draggableID = e.type == 'touchstart' ? _mobileDraggableID[0] : e.dataTransfer.getData("text/plain");
-  //   _mobileDraggableID.shift();
+   
+    if (_mobileDraggableID.length == 0 && e.type == 'touchstart') {
+      _mobileDraggableID.unshift(e.target.id);
+      return;
+    } 
+    const draggableID = e.type == 'touchstart' ? _mobileDraggableID[0] : e.dataTransfer.getData("text/plain");
+    _mobileDraggableID.shift();
 
-    const draggableID = e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(draggableID);
     const previousDraggable = this.children.length > 1 ? this.children[1].firstElementChild : this.children[0].firstElementChild;
     
@@ -125,10 +123,12 @@ const dragAndDrop = (() => {
   }
 
   const _init = function() {
-    controller.bindtoSquares();
     aiOpponent.assignAItoBot.call(controller);
+    controller.bindtoSquares();
     aiOpponent.aiGoesFirst();
     _removeDragAndDropBind();
+    
+    
   }
   
   return {dropbox1, dropbox2, playerOptions};
@@ -306,7 +306,9 @@ const controller = (() => {
       if (player1.wins != 3 && player2.wins != 3) {
         setTimeout(function() {
           board.reset();
-          aiOpponent.aiGoesFirst();
+          if (! (player1.playerType == 'bot' && player2.playerType == 'bot')) {
+            aiOpponent.aiGoesFirst();
+          };
           bindtoSquares();
         }, 500);
       } else {
@@ -330,7 +332,9 @@ function player(token, playerType) {
 const aiOpponent = (function() {
   
   const placeAIMove = function() {
+    // if (aiAgainstAi() == false) return;
     const aiMove = _generateOpenSquare();
+    
     board.render(aiMove);
     board.updateBoard(aiMove);
     controller.piecesPlayed.unshift(aiMove.textContent);
@@ -362,5 +366,13 @@ const aiOpponent = (function() {
         setTimeout(placeAIMove, 500);
     } 
   }
+
+  // const aiAgainstAi = function() {
+  //   if ((controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot') && (controller.player1.wins < 1 || controller.player2.wins < 1)) {
+  //       aiGoesFirst();
+  //       return true;
+  //   }
+  // }
+
   return {placeAIMove, assignAItoBot, aiGoesFirst}
 })();
