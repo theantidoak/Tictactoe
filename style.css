@@ -178,7 +178,8 @@ main {
 }
 
 .dropbox > * {
-  word-spacing: 1rem;
+  word-spacing: 1.25rem;
+  justify-content: flex-start;
 }
 
 #drop1, #drop2 {
