@@ -301,19 +301,14 @@ const controller = (() => {
       _postGameProcess();
     }
 
-    const _postGameProcess = function() {
-      
+    const _postGameProcess = function() {     
       removeBind();
       board.updateScore();
       if (player1.wins != 3 && player2.wins != 3) {
         setTimeout(function() {
-          
-          if (! (player1.playerType == 'bot' && player2.playerType == 'bot')) {
-            board.reset();
-            aiOpponent.aiGoesFirst();
-            bindtoSquares();
-          };
-          
+          board.reset();
+          aiOpponent.aiGoesFirst();
+          bindtoSquares();
         }, 500);
       } else {
         board.displayGameOver();
@@ -362,6 +357,8 @@ const aiOpponent = (function() {
 
   const aiGoesFirst = function() {
     const totalGames = controller.player1.wins + controller.player2.wins + controller.player1.ties; 
+    const onlyBots = controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot';
+    if (onlyBots) return;
     if ((controller.player1.playerType == 'bot' && totalGames % 2 == 0) || 
       (controller.player2.playerType == 'bot' && totalGames % 2 != 0)) {
         controller.removeBind();
@@ -372,11 +369,8 @@ const aiOpponent = (function() {
   const aiAgainstAi = function() {
     if (controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot') {
       placeAIMove();
-      if (controller.player1.wins < 1 && controller.player2.wins < 1 && controller.player1.ties < 1) {
+      if (controller.player1.wins < 3 && controller.player2.wins < 3) {
         setTimeout(aiAgainstAi, 1000);
-      } else {
-        controller.player1.wins == 1 ? controller.player1.wins = 3 : controller.player2.wins = 3;
-        board.displayGameOver();
       }
     }
   }
