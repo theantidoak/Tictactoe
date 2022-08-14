@@ -166,7 +166,7 @@ main {
 }
 
 .dropbox {
-  width: 5.5rem;
+  width: 6rem;
   height: 1.65rem;
   outline: 2px grey;
   border-style: inset;
@@ -179,7 +179,7 @@ main {
 
 .dropbox > * {
   word-spacing: 1.25rem;
-  justify-content: flex-start;
+  width: 6rem;
 }
 
 #drop1, #drop2 {
