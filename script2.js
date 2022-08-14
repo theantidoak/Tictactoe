@@ -124,6 +124,7 @@ const dragAndDrop = (() => {
 
   const _init = function() {
     aiOpponent.assignAItoBot.call(controller);
+    aiOpponent.aiAgainstAi();
     controller.bindtoSquares();
     aiOpponent.aiGoesFirst();
     _removeDragAndDropBind();
@@ -301,15 +302,18 @@ const controller = (() => {
     }
 
     const _postGameProcess = function() {
+      
       removeBind();
       board.updateScore();
       if (player1.wins != 3 && player2.wins != 3) {
         setTimeout(function() {
-          board.reset();
+          
           if (! (player1.playerType == 'bot' && player2.playerType == 'bot')) {
+            board.reset();
             aiOpponent.aiGoesFirst();
+            bindtoSquares();
           };
-          bindtoSquares();
+          
         }, 500);
       } else {
         board.displayGameOver();
@@ -332,9 +336,7 @@ function player(token, playerType) {
 const aiOpponent = (function() {
   
   const placeAIMove = function() {
-    // if (aiAgainstAi() == false) return;
     const aiMove = _generateOpenSquare();
-    
     board.render(aiMove);
     board.updateBoard(aiMove);
     controller.piecesPlayed.unshift(aiMove.textContent);
@@ -367,12 +369,17 @@ const aiOpponent = (function() {
     } 
   }
 
-  // const aiAgainstAi = function() {
-  //   if ((controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot') && (controller.player1.wins < 1 || controller.player2.wins < 1)) {
-  //       aiGoesFirst();
-  //       return true;
-  //   }
-  // }
+  const aiAgainstAi = function() {
+    if (controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot') {
+      placeAIMove();
+      if (controller.player1.wins < 1 && controller.player2.wins < 1 && controller.player1.ties < 1) {
+        setTimeout(aiAgainstAi, 1000);
+      } else {
+        controller.player1.wins == 1 ? controller.player1.wins = 3 : controller.player2.wins = 3;
+        board.displayGameOver();
+      }
+    }
+  }
 
-  return {placeAIMove, assignAItoBot, aiGoesFirst}
+  return {aiAgainstAi, placeAIMove, assignAItoBot, aiGoesFirst}
 })();
