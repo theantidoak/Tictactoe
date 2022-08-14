@@ -6,7 +6,8 @@ const dragAndDrop = (() => {
   const dropbox2 = document.querySelector('#drop2');
   const _leftDropbox = document.querySelector('.left-dropbox');
   const _rightDropbox = document.querySelector('.right-dropbox');
-
+  const _notDrop1 = ['drop2', 'human1', 'human2', 'bot1', 'bot2'];
+  const _notDrop2 = ['drop1', 'human1', 'human2', 'bot1', 'bot2'];
   const _mobileDraggableID = [];
 
 
@@ -37,8 +38,6 @@ const dragAndDrop = (() => {
   playerOptions.forEach((option) => option.addEventListener('touchstart', _mobileDrag));
   dropbox1.parentElement.addEventListener('touchstart', _drop);
   dropbox2.parentElement.addEventListener('touchstart', _drop);
-  
-
 
 
   function _drag(e) {
@@ -64,18 +63,18 @@ const dragAndDrop = (() => {
     }
   }
   function _drop(e) {
+
     if (_preventDoubleEvent.call(this, e)) return;
     
     const draggableID = e.type == 'touchstart' ? _mobileDraggableID.pop() : e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(draggableID);
     const previousDraggable = this.children.length > 1 ? this.children[1].firstElementChild : this.children[0].firstElementChild;
-   
-    if ((draggableID == this.firstElementChild.id || draggableID[0] != this.firstElementChild.id[0] || draggable.parentElement.children.length == 2) && [..._draggables.children].some(drag => drag == this)) return;
-    if (this == draggable.parentElement.parentElement) return;
-    _preventWrongDrops.call(this, draggable, draggableID);
-    _changeDraggable.call(this, previousDraggable, draggable);
+    if (previousDraggable == draggable) return;
+
+    _preventWrongDrops.call(this, draggable, draggableID, e.target);
+    _changeDraggable.call(this, previousDraggable);
     _modifyContent.call(this, draggableID, previousDraggable);
-    _changeColors.call(this, draggableID, e.target, draggable);
+    _changeColors.call(this, draggableID);
     _removeNonPlayersAndBegin.call(this);
   }
 
@@ -84,13 +83,11 @@ const dragAndDrop = (() => {
       draggableID[0] == 'b' ? _draggables.lastElementChild.appendChild(draggable) : 
       _draggables.firstElementChild.appendChild(draggable) 
     } else {
-      
       this.children[1].appendChild(draggable);
     }
   }
 
   const _changeDraggable = function(previous) {
-    
     if (this.getAttribute('class')[0] != 'p' && previous != null) {
       previous.id[0] == 'h' ? _draggables.firstElementChild.appendChild(previous) :
       _draggables.lastElementChild.appendChild(previous);
@@ -114,17 +111,20 @@ const dragAndDrop = (() => {
     previous ? previous.textContent = '' : null;
   }
 
-  const _changeColors = function(draggableID, draggable) {
-  
+  const _changeColors = function(draggableID) {
+    
     const dropBox = this.children[1] || this.children[0];
     const dropBoxID = dropBox.getAttribute('class')[0];
-    
+ 
     if (dropBoxID == 'd') {
       dropBox.parentElement.firstElementChild.style.color = draggableID[0] == 'h' ? 'blue' : 'red';
-    } else if (dropBoxID == 'p' && draggable.parentElement.parentElement == _draggables) {
-      dropbox1.parentElement.firstElementChild.style.color = 'black';
+    } 
+    if (_notDrop2.some((drop) => drop == this.lastElementChild.id) && !dropbox2.firstElementChild) {
       dropbox2.parentElement.firstElementChild.style.color = 'black';
     } 
+    if (_notDrop1.some((drop) => drop == this.lastElementChild.id) && !dropbox1.firstElementChild) {
+      dropbox1.parentElement.firstElementChild.style.color = 'black';
+    }
   }
 
   const _removeNonPlayersAndBegin = function() {
@@ -145,8 +145,6 @@ const dragAndDrop = (() => {
     controller.bindtoSquares();
     aiOpponent.aiGoesFirst();
     _removeDragAndDropBind();
-    
-    
   }
   
   return {dropbox1, dropbox2, playerOptions};
