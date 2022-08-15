@@ -351,12 +351,12 @@ function player(token, playerType) {
 const aiOpponent = (function() {
   
   const placeAIMove = function() {
-    const [a, b, c, d, e, f, ...thirdRow] = controller.currentGame;
-   
+    // const [a, b, c, d, e, f, ...thirdRow] = controller.currentGame;
     // const gameBoard = [[a, b, c], [d, e, f], thirdRow];
-
-    // const usableNumber = _generateOpenSquare();
-    const usableNumber = findBestMove([[a, b, c], [d, e, f], thirdRow]);
+    // const usableNumber = findBestMove([[a, b, c], [d, e, f], thirdRow]);
+    
+    const usableNumber = _generateOpenSquare();
+    
     const aiMove = board.squares[usableNumber];
     board.render(aiMove);
     board.updateBoard(aiMove);
