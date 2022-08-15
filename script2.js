@@ -203,6 +203,7 @@ const board = (() => {
         }
       });
     currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
+    controller.player1.roundOver = false;
   }
 
   function _createNewGame() {
@@ -304,9 +305,12 @@ const controller = (() => {
       const [...winners] = [_checkColumns(), _checkDiagonals(), _checkRows()];
       if (winners.some((winner) => winner == 'xWins')) {
         ++player1.wins;
+        player1.roundOver = true;
       } else if (winners.some((winner) => winner == 'oWins')) {
         ++player2.wins;
+        player1.roundOver = true;
       } else if (currentGame.every((piece) => piece != '')) {
+        player1.roundOver = true;
         ++player1.ties;
         ++player2.ties;
       } else {
@@ -330,35 +334,44 @@ const controller = (() => {
       }
     }
 
-    return {player1, player2, piecesPlayed, bindtoSquares, removeBind, changePlayer, giveColorToToken, checkWin};
+    return {player1, player2, piecesPlayed, currentGame, bindtoSquares, removeBind, changePlayer, giveColorToToken, checkWin};
 })();
 
 
 function player(token, playerType) {
   this.token = token;
   this.playerType = playerType;
+  this.roundOver = false;
   let wins = 0;
   let ties = 0;
-  return {wins, ties, playerType, token};
+  return {wins, ties, playerType, token, roundOver};
 }
 
 
 const aiOpponent = (function() {
   
   const placeAIMove = function() {
-    const aiMove = _generateOpenSquare();
+    const [a, b, c, d, e, f, ...thirdRow] = controller.currentGame;
+   
+    // const gameBoard = [[a, b, c], [d, e, f], thirdRow];
+
+    // const usableNumber = _generateOpenSquare();
+    const usableNumber = findBestMove([[a, b, c], [d, e, f], thirdRow]);
+    const aiMove = board.squares[usableNumber];
     board.render(aiMove);
     board.updateBoard(aiMove);
     controller.piecesPlayed.unshift(aiMove.textContent);
+    
     controller.checkWin();
+    
   }
 
   const _generateOpenSquare = function() {
     const randomNumber = Math.floor(Math.random()*9);
     const openSquare = board.squares[randomNumber];
-    const aiMove = openSquare.textContent != "" ? 
-      _generateOpenSquare() : openSquare;
-    return aiMove;
+    const usableNumber = openSquare.textContent == "" ? randomNumber : _generateOpenSquare();
+    return usableNumber;
+    
   }
 
   const assignAItoBot = function() {
@@ -389,6 +402,128 @@ const aiOpponent = (function() {
       }
     }
   }
+
+
+
+
+
+
+  function minimax(board, depth, isMax) {
+    
+    
+    
+
+    // if (controller.player1.roundOver) return;
+
+    if (isMax) {
+        let best = -1000;
+        // Traverse all cells
+        for(let i = 0; i < 3; i++) {
+            for(let j = 0; j < 3; j++) {
+                 
+                // Check if cell is empty
+                if (board[i][j]=='') {
+                     
+                    // Make the move
+                    board[i][j] = controller.player1.token;
+  
+                    // Call minimax recursively
+                    // and choose the maximum value
+                    best = Math.max(best, minimax(board, depth + 1, !isMax));
+  
+                    // Undo the move
+                    board[i][j] = '';
+                }
+            }
+        }
+        
+        return best;
+    }
+  
+    // If this minimizer's move
+    else {
+        let best = 1000;
+  
+        // Traverse all cells
+        for(let i = 0; i < 3; i++) {
+            for(let j = 0; j < 3; j++) {
+                 
+                // Check if cell is empty
+                if (board[i][j] == '') {
+                     
+                    // Make the move
+                    board[i][j] = controller.player2.token;
+  
+                    // Call minimax recursively and
+                    // choose the minimum value
+                    best = Math.min(best, minimax(board, depth + 1, !isMax));
+                    
+                    // Undo the move
+                    board[i][j] = '';
+                }
+            }
+        }
+       
+        return best;
+    }
+}
+ 
+
+function move() {
+  let row;
+  let col;
+  return {row, col};
+};
+// This will return the best possible
+// move for the player
+function findBestMove(board) {
+
+    let bestVal = -1000;
+    let bestMove = move();
+    bestMove.row = -1;
+    bestMove.col = -1;
+  
+    // Traverse all cells, evaluate
+    // minimax function for all empty
+    // cells. And return the cell
+    // with optimal value.
+    for(let i = 0; i < 3; i++) {
+        for(let j = 0; j < 3; j++) {
+             
+            // Check if cell is empty
+            if (board[i][j] == '') {
+                 
+                // Make the move
+                board[i][j] = controller.player1.token;
+  
+                // compute evaluation function
+                // for this move.
+                let moveVal = minimax(board, 0, false);
+  
+                // Undo the move
+                board[i][j] = '';
+  
+                // If the value of the current move
+                // is more than the best value, then
+                // update best
+                if (moveVal > bestVal) {
+                    bestMove.row = i;
+                    bestMove.col = j;
+                    bestVal = moveVal;
+                }
+            }
+        }
+    }
+
+      board[bestMove.row][bestMove.col] = 'token';
+      const index = board.flat().indexOf('token');
+      // board[bestMove.row][bestMove.col] = '';
+
+      return index;
+
+    
+    // return bestMove;
+}
 
   return {aiAgainstAi, placeAIMove, assignAItoBot, aiGoesFirst}
 })();
