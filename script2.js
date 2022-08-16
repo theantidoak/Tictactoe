@@ -12,6 +12,7 @@ const dragAndDrop = (() => {
   const _notDrop1 = ['drop2', 'human1', 'human2', 'bot1', 'bot2'];
   const _notDrop2 = ['drop1', 'human1', 'human2', 'bot1', 'bot2'];
   const _mobileDraggableID = [];
+  let _firstEventFlag = true;
 
 
   //bind events
@@ -56,10 +57,11 @@ const dragAndDrop = (() => {
   }
 
 
-  function _mobileDrag() {
+  function _mobileDrag(e) {
     if (_mobileDraggableID.length == 0) {
       _mobileDraggableID.unshift(this.id);
     } 
+    _changeDropboxContent(e);
   }
 
   function _drop(e) {
@@ -68,7 +70,7 @@ const dragAndDrop = (() => {
     const draggable = document.getElementById(draggableID);
     const previousDraggable = this.children.length > 1 ? this.children[1].firstElementChild : this.children[0].firstElementChild;
     if (previousDraggable == draggable) return;
-
+    
     _preventWrongDrops.call(this, draggable, draggableID, e.target);
     _changeDraggable.call(this, previousDraggable);
     _modifyContent.call(this, draggableID, previousDraggable);
@@ -88,6 +90,17 @@ const dragAndDrop = (() => {
     _difficultyInput.parentElement.style.display = 'none';
     _draggables.parentElement.style.filter = 'blur(0px)';
     _init();
+  }
+
+  const _changeDropboxContent = function(e) {
+    if (_firstEventFlag == false) return;
+    if (e.type == 'touchstart') {
+      dropbox1.textContent = 'Place Here';
+      dropbox1.style.fontWeight = '700';
+      dropbox2.textContent = 'Place Here';
+      dropbox2.style.fontWeight = '700';
+      _firstEventFlag = false;
+    }
   }
 
   const _preventDoubleEvent = function(e) {
