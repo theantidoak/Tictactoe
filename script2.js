@@ -6,9 +6,8 @@ const dragAndDrop = (() => {
   const dropbox2 = document.querySelector('#drop2');
   const _leftDropbox = document.querySelector('.left-dropbox');
   const _rightDropbox = document.querySelector('.right-dropbox');
-  const difficultyInput = document.querySelector('.slider');
-  const rangeLabel = document.querySelector('#myRangeLabel');
-  const playButton = document.querySelector('.play');
+  const _difficultyInput = document.querySelector('.slider');
+  const _playButton = document.querySelector('.play');
 
   const _notDrop1 = ['drop2', 'human1', 'human2', 'bot1', 'bot2'];
   const _notDrop2 = ['drop1', 'human1', 'human2', 'bot1', 'bot2'];
@@ -27,8 +26,8 @@ const dragAndDrop = (() => {
   dropbox2.parentElement.addEventListener('dragover', _allowDrop);
   dropbox2.parentElement.addEventListener('drop', _drop);
 
-  difficultyInput.addEventListener('click', setDifficulty);
-  playButton.addEventListener('click', startGame);
+  _difficultyInput.addEventListener('click', _setDifficulty);
+  _playButton.addEventListener('click', _startGame);
 
   const _removeDragAndDropBind = function() {
     playerOptions.forEach((option) => option.removeEventListener('dragstart', _drag));
@@ -50,7 +49,6 @@ const dragAndDrop = (() => {
   function _drag(e) {
     e.stopPropagation();
     e.dataTransfer.setData("text/plain", e.target.id);
-    
   }
 
   function _allowDrop(e) {
@@ -64,15 +62,8 @@ const dragAndDrop = (() => {
     } 
   }
 
-  const _preventDoubleEvent = function(e) {
-    if (e.type == 'touchstart' && _mobileDraggableID.length == 0 && (this == _leftDropbox || this == _rightDropbox)) {
-      return true;
-    }
-  }
   function _drop(e) {
-
     if (_preventDoubleEvent.call(this, e)) return;
-    
     const draggableID = e.type == 'touchstart' ? _mobileDraggableID.pop() : e.dataTransfer.getData("text/plain");
     const draggable = document.getElementById(draggableID);
     const previousDraggable = this.children.length > 1 ? this.children[1].firstElementChild : this.children[0].firstElementChild;
@@ -83,6 +74,26 @@ const dragAndDrop = (() => {
     _modifyContent.call(this, draggableID, previousDraggable);
     _changeColors.call(this, draggableID);
     _removeNonPlayersAndBegin.call(this);
+  }
+
+  function _setDifficulty() {
+    if (controller.player1.playerType == 'bot') {
+      controller.player1.difficulty = this.value == 1 ? 'easy' : 'hard';
+    } else if (controller.player2.playerType == 'bot') {
+      controller.player2.difficulty = this.value == 1 ? 'easy' : 'hard';
+    }
+  }
+
+  function _startGame() {
+    _difficultyInput.parentElement.style.display = 'none';
+    _draggables.parentElement.style.filter = 'blur(0px)';
+    _init();
+  }
+
+  const _preventDoubleEvent = function(e) {
+    if (e.type == 'touchstart' && _mobileDraggableID.length == 0 && (this == _leftDropbox || this == _rightDropbox)) {
+      return true;
+    }
   }
 
   const _preventWrongDrops = function(draggable, draggableID) {
@@ -119,7 +130,6 @@ const dragAndDrop = (() => {
   }
 
   const _changeColors = function(draggableID) {
-    
     const dropBox = this.children[1] || this.children[0];
     const dropBoxID = dropBox.getAttribute('class')[0];
  
@@ -142,42 +152,27 @@ const dragAndDrop = (() => {
           option.parentElement.parentElement.style.display = 'none';
         }
       })
-      _init();
+      _setAI();
     }
   }
 
-  const displayDifficultyOption = function() {
+  const _displayDifficultyOption = function() {
     const bot1 = controller.player1.playerType == 'bot';
     const bot2 = controller.player2.playerType == 'bot';
     if ((bot1 || bot2) && (!(bot1 && bot2))) {
-      difficultyInput.parentElement.style.display = 'block';
+      _difficultyInput.parentElement.style.display = 'block';
       _draggables.parentElement.style.filter = 'blur(2px)';
       return true;
     }
-    
   }
 
-  function setDifficulty() {
-    if (controller.player1.playerType == 'bot') {
-      controller.player1.difficulty = this.value == 1 ? 'easy' : 'hard';
-    } else if (controller.player2.playerType == 'bot') {
-      controller.player2.difficulty = this.value == 1 ? 'easy' : 'hard';
-    }
-  }
-
-  function startGame() {
-    difficultyInput.parentElement.style.display = 'none';
-    _draggables.parentElement.style.filter = 'blur(0px)';
-    aiOpponent.aiAgainstAi();
-    controller.bindtoSquares();
-    aiOpponent.aiGoesFirst();
-    _removeDragAndDropBind();
+  const _setAI = function() {
+    aiOpponent.assignAItoBot.call(controller);
+    if (_displayDifficultyOption()) return;
+    _init();
   }
 
   const _init = function() {
-    aiOpponent.assignAItoBot.call(controller);
-    if (displayDifficultyOption()) return;
-    
     aiOpponent.aiAgainstAi();
     controller.bindtoSquares();
     aiOpponent.aiGoesFirst();
@@ -265,7 +260,6 @@ const controller = (() => {
     }
 
     const placeMove = function() {
-      
       if (_squareIsEmpty.call(this) == false) return;
       board.render(this);
       board.updateBoard(this);
@@ -300,17 +294,18 @@ const controller = (() => {
       return this.textContent == "" ? true : false;
     };
 
-    const _checkRows = (aiCalc, newBoard) => {
+    const checkRows = (gameBoard, thePlayer, ai) => {
       for (let i = 0; i < 3; i++) {
         const winningRow = [];
+        const game = gameBoard || currentGame;
         for (let j = i*3; j < i*3 + 3; j++) {
-          if (aiCalc) {
-            winningRow.push(newBoard[j]);
-          } else {
-            winningRow.push(currentGame[j]);
-          }
+          winningRow.push(game[j]);
         }
-        if (winningRow.every(field => field === 'X')) { 
+        if (ai && winningRow.every(field => field === thePlayer)) {
+          return true;
+        } else if (ai && gameBoard && winningRow.every(field => field !== thePlayer)) {
+          return false;
+        } else if (winningRow.every(field => field === 'X')) { 
           return 'xWins';
         } else if (winningRow.every(field => field === 'O')) {
           return 'oWins';
@@ -318,17 +313,19 @@ const controller = (() => {
       }
     }
     
-    const _checkColumns = (aiCalc, newBoard) => {
+    const checkColumns = (gameBoard, thePlayer, ai) => {
       for (let i = 0; i < 3; i++) {
         const winningColumn = [];
+        const game = gameBoard || currentGame;
+   
         for (let j = i; j < i + 7; j+=3) {
-          if (aiCalc) {
-            winningColumn.push(newBoard[j]);
-          } else {
-            winningColumn.push(currentGame[j]);
-          }
+          winningColumn.push(game[j]);
         }
-        if (winningColumn.every(field => field === 'X')) {
+        if (ai && winningColumn.every(field => field === thePlayer)) {
+          return true;
+        } else if (ai && winningColumn.every(field => field !== thePlayer)) {
+          return false;
+        } else if (winningColumn.every(field => field === 'X')) { 
           return 'xWins';
         } else if (winningColumn.every(field => field === 'O')) {
           return 'oWins';
@@ -336,18 +333,16 @@ const controller = (() => {
       }
     }
     
-    const _checkDiagonals = (aiCalc, newBoard) => {
-      let firstDiagonal;
-      let secondDiagonal;
-      if (aiCalc) {
-        firstDiagonal = [newBoard[0], newBoard[4], newBoard[8]];
-        secondDiagonal = [newBoard[2], newBoard[4], newBoard[6]];
-      } else {
-        firstDiagonal = [currentGame[0], currentGame[4], currentGame[8]];
-        secondDiagonal = [currentGame[2], currentGame[4], currentGame[6]];
-      }
+    const checkDiagonals = (gameBoard, thePlayer, ai) => {
+      const game = gameBoard || currentGame;
+      let firstDiagonal = [game[0], game[4], game[8]];
+      let secondDiagonal = [game[2], game[4], game[6]];
       
-      if (firstDiagonal.every(field => field === 'X') || secondDiagonal.every(field => field === 'X')) {
+      if (ai && (firstDiagonal.every(field => field === thePlayer) || secondDiagonal.every(field => field === thePlayer))) {
+        return true;
+      } else if (ai && (gameBoard && firstDiagonal.every(field => field !== thePlayer) || secondDiagonal.every(field => field !== thePlayer))) {
+        return false;
+      } else if (firstDiagonal.every(field => field === 'X') || secondDiagonal.every(field => field === 'X')) {
         return 'xWins';
       } else if (firstDiagonal.every(field => field == 'O') || secondDiagonal.every(field  => field == 'O')) {
         return 'oWins'
@@ -355,7 +350,8 @@ const controller = (() => {
     }
 
     const checkWin = function() {
-      const [...winners] = [_checkColumns(), _checkDiagonals(), _checkRows()];
+      const [...winners] = [checkColumns(), checkDiagonals(), checkRows()];
+
       if (winners.some((winner) => winner == 'xWins')) {
         ++player1.wins;
       } else if (winners.some((winner) => winner == 'oWins')) {
@@ -384,7 +380,7 @@ const controller = (() => {
       }
     }
 
-    return {player1, player2, piecesPlayed, currentGame, bindtoSquares, removeBind, changePlayer, giveColorToToken, checkWin};
+    return {player1, player2, piecesPlayed, currentGame, bindtoSquares, removeBind, changePlayer, giveColorToToken, checkRows, checkColumns, checkDiagonals, checkWin};
 })();
 
 
@@ -399,9 +395,8 @@ function player(token, playerType) {
 
 
 const aiOpponent = (function() {
-  
-  const placeAIMove = function() {
 
+  const placeAIMove = function() {
     if (controller.player1.difficulty == 'easy' || controller.player2.difficulty == 'easy') {
       usableNumber = _generateOpenSquare();
     } else {
@@ -464,36 +459,27 @@ const aiOpponent = (function() {
     gameBoard.forEach((space) => {
       gameBoard[gameBoard.indexOf(space)] = space == '' ? gameBoard.indexOf(space) : space;
     });
-    return minimax(gameBoard, playerX, playerX, playerO); 
+    return _minimax(gameBoard, playerX, playerX, playerO); 
   }
 
-  function winning(board, player){
-    if (
-    (board[0] == player && board[1] == player && board[2] == player) ||
-    (board[3] == player && board[4] == player && board[5] == player) ||
-    (board[6] == player && board[7] == player && board[8] == player) ||
-    (board[0] == player && board[3] == player && board[6] == player) ||
-    (board[1] == player && board[4] == player && board[7] == player) ||
-    (board[2] == player && board[5] == player && board[8] == player) ||
-    (board[0] == player && board[4] == player && board[8] == player) ||
-    (board[2] == player && board[4] == player && board[6] == player)
-    ) {
+  const _winning =  function(board, player){
+    if (controller.checkColumns(board, player, true) || controller.checkDiagonals(board, player, true) || controller.checkRows(board, player, true)) {
     return true;
     } else {
     return false;
     }
    }
 
-  function _emptyIndexies(gameBoard){
+  const _emptyIndexies = function(gameBoard) {
     return  gameBoard.filter(space => space != 'O' && space != 'X');
   }
 
-  function minimax(newBoard, thePlayer, playerX, playerO) {
+  const _minimax = function(newBoard, thePlayer, playerX, playerO) {
     const availSpots = _emptyIndexies(newBoard);
 
-    if (winning(newBoard, playerO)) {
+    if (_winning(newBoard, playerO)) {
       return {score:-10};
-    } else if (winning(newBoard, playerX)) {
+    } else if (_winning(newBoard, playerX)) {
       return {score:10};
     } else if (availSpots.length === 0) {
       return {score:0};
@@ -507,11 +493,11 @@ const aiOpponent = (function() {
       newBoard[availSpots[i]] = thePlayer;
 
       if (thePlayer == playerX) {
-        const result = minimax(newBoard, playerO, playerX, playerO);
+        const result = _minimax(newBoard, playerO, playerX, playerO);
         move.score = result.score;
       }
       else {
-        const result = minimax(newBoard, playerX, playerX, playerO);
+        const result = _minimax(newBoard, playerX, playerX, playerO);
         move.score = result.score;
       }
       newBoard[availSpots[i]] = move.index;
@@ -519,7 +505,8 @@ const aiOpponent = (function() {
     }
 
   let bestMove;
-  if(thePlayer === playerX) {
+
+  if (thePlayer === playerX) {
     let bestScore = -10000;
     for(let i = 0; i < moves.length; i++) {
       if(moves[i].score > bestScore){
@@ -538,5 +525,6 @@ const aiOpponent = (function() {
   }
   return moves[bestMove];
 }
+
   return {aiAgainstAi, placeAIMove, assignAItoBot, aiGoesFirst}
 })();
