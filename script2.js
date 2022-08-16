@@ -152,7 +152,9 @@ const dragAndDrop = (() => {
     if ((bot1 || bot2) && (!(bot1 && bot2))) {
       difficultyInput.parentElement.style.display = 'block';
       _draggables.parentElement.style.filter = 'blur(2px)';
+      return true;
     }
+    
   }
 
   function setDifficulty() {
@@ -166,11 +168,16 @@ const dragAndDrop = (() => {
   function startGame() {
     difficultyInput.parentElement.style.display = 'none';
     _draggables.parentElement.style.filter = 'blur(0px)';
+    aiOpponent.aiAgainstAi();
+    controller.bindtoSquares();
+    aiOpponent.aiGoesFirst();
+    _removeDragAndDropBind();
   }
 
   const _init = function() {
     aiOpponent.assignAItoBot.call(controller);
-    displayDifficultyOption();
+    if (displayDifficultyOption()) return;
+    
     aiOpponent.aiAgainstAi();
     controller.bindtoSquares();
     aiOpponent.aiGoesFirst();
