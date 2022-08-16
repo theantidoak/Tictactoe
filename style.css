@@ -111,7 +111,7 @@ main {
 }
 
 .positionedB > *::after {
-  content: 'Choose Bot';
+  content: 'Choose Easy Bot';
 }
 
 .positionedB > * {

@@ -229,6 +229,7 @@ const controller = (() => {
     }
 
     const placeMove = function() {
+      
       if (_squareIsEmpty.call(this) == false) return;
       board.render(this);
       board.updateBoard(this);
@@ -263,11 +264,15 @@ const controller = (() => {
       return this.textContent == "" ? true : false;
     };
 
-    const _checkRows = () => {
+    const _checkRows = (aiCalc, newBoard) => {
       for (let i = 0; i < 3; i++) {
         const winningRow = [];
         for (let j = i*3; j < i*3 + 3; j++) {
-          winningRow.push(currentGame[j]);
+          if (aiCalc) {
+            winningRow.push(newBoard[j]);
+          } else {
+            winningRow.push(currentGame[j]);
+          }
         }
         if (winningRow.every(field => field === 'X')) { 
           return 'xWins';
@@ -277,11 +282,15 @@ const controller = (() => {
       }
     }
     
-    const _checkColumns = () => {
+    const _checkColumns = (aiCalc, newBoard) => {
       for (let i = 0; i < 3; i++) {
         const winningColumn = [];
         for (let j = i; j < i + 7; j+=3) {
-          winningColumn.push(currentGame[j]);
+          if (aiCalc) {
+            winningColumn.push(newBoard[j]);
+          } else {
+            winningColumn.push(currentGame[j]);
+          }
         }
         if (winningColumn.every(field => field === 'X')) {
           return 'xWins';
@@ -291,9 +300,17 @@ const controller = (() => {
       }
     }
     
-    const _checkDiagonals = () => {
-      const firstDiagonal = [currentGame[0], currentGame[4], currentGame[8]];
-      const secondDiagonal = [currentGame[2], currentGame[4], currentGame[6]];
+    const _checkDiagonals = (aiCalc, newBoard) => {
+      let firstDiagonal;
+      let secondDiagonal;
+      if (aiCalc) {
+        firstDiagonal = [newBoard[0], newBoard[4], newBoard[8]];
+        secondDiagonal = [newBoard[2], newBoard[4], newBoard[6]];
+      } else {
+        firstDiagonal = [currentGame[0], currentGame[4], currentGame[8]];
+        secondDiagonal = [currentGame[2], currentGame[4], currentGame[6]];
+      }
+      
       if (firstDiagonal.every(field => field === 'X') || secondDiagonal.every(field => field === 'X')) {
         return 'xWins';
       } else if (firstDiagonal.every(field => field == 'O') || secondDiagonal.every(field  => field == 'O')) {
@@ -305,12 +322,9 @@ const controller = (() => {
       const [...winners] = [_checkColumns(), _checkDiagonals(), _checkRows()];
       if (winners.some((winner) => winner == 'xWins')) {
         ++player1.wins;
-        player1.roundOver = true;
       } else if (winners.some((winner) => winner == 'oWins')) {
         ++player2.wins;
-        player1.roundOver = true;
       } else if (currentGame.every((piece) => piece != '')) {
-        player1.roundOver = true;
         ++player1.ties;
         ++player2.ties;
       } else {
@@ -351,19 +365,17 @@ function player(token, playerType) {
 const aiOpponent = (function() {
   
   const placeAIMove = function() {
-    // const [a, b, c, d, e, f, ...thirdRow] = controller.currentGame;
-    // const gameBoard = [[a, b, c], [d, e, f], thirdRow];
-    // const usableNumber = findBestMove([[a, b, c], [d, e, f], thirdRow]);
-    
-    const usableNumber = _generateOpenSquare();
-    
+
+    if (controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot') {
+      usableNumber = _generateOpenSquare();
+    } else {
+      usableNumber = bestAiMove().index;
+    }
     const aiMove = board.squares[usableNumber];
     board.render(aiMove);
     board.updateBoard(aiMove);
     controller.piecesPlayed.unshift(aiMove.textContent);
-    
     controller.checkWin();
-    
   }
 
   const _generateOpenSquare = function() {
@@ -371,7 +383,6 @@ const aiOpponent = (function() {
     const openSquare = board.squares[randomNumber];
     const usableNumber = openSquare.textContent == "" ? randomNumber : _generateOpenSquare();
     return usableNumber;
-    
   }
 
   const assignAItoBot = function() {
@@ -403,127 +414,93 @@ const aiOpponent = (function() {
     }
   }
 
-
-
-
-
-
-  function minimax(board, depth, isMax) {
-    
-    
-    
-
-    // if (controller.player1.roundOver) return;
-
-    if (isMax) {
-        let best = -1000;
-        // Traverse all cells
-        for(let i = 0; i < 3; i++) {
-            for(let j = 0; j < 3; j++) {
-                 
-                // Check if cell is empty
-                if (board[i][j]=='') {
-                     
-                    // Make the move
-                    board[i][j] = controller.player1.token;
-  
-                    // Call minimax recursively
-                    // and choose the maximum value
-                    best = Math.max(best, minimax(board, depth + 1, !isMax));
-  
-                    // Undo the move
-                    board[i][j] = '';
-                }
-            }
-        }
-        
-        return best;
+  const bestAiMove = function() {
+    let playerX;
+    let playerO;
+    if (controller.player1.playerType == 'bot') {
+      playerX = controller.player1.token;
+      playerO = controller.player2.token;
+    } else {
+      playerX = controller.player2.token;
+      playerO = controller.player1.token;
     }
-  
-    // If this minimizer's move
-    else {
-        let best = 1000;
-  
-        // Traverse all cells
-        for(let i = 0; i < 3; i++) {
-            for(let j = 0; j < 3; j++) {
-                 
-                // Check if cell is empty
-                if (board[i][j] == '') {
-                     
-                    // Make the move
-                    board[i][j] = controller.player2.token;
-  
-                    // Call minimax recursively and
-                    // choose the minimum value
-                    best = Math.min(best, minimax(board, depth + 1, !isMax));
-                    
-                    // Undo the move
-                    board[i][j] = '';
-                }
-            }
-        }
-       
-        return best;
+    const [...gameBoard] = controller.currentGame;
+    gameBoard.forEach((space) => {
+      gameBoard[gameBoard.indexOf(space)] = space == '' ? gameBoard.indexOf(space) : space;
+    });
+    return minimax(gameBoard, playerX, playerX, playerO); 
+  }
+
+  function winning(board, player){
+    if (
+    (board[0] == player && board[1] == player && board[2] == player) ||
+    (board[3] == player && board[4] == player && board[5] == player) ||
+    (board[6] == player && board[7] == player && board[8] == player) ||
+    (board[0] == player && board[3] == player && board[6] == player) ||
+    (board[1] == player && board[4] == player && board[7] == player) ||
+    (board[2] == player && board[5] == player && board[8] == player) ||
+    (board[0] == player && board[4] == player && board[8] == player) ||
+    (board[2] == player && board[4] == player && board[6] == player)
+    ) {
+    return true;
+    } else {
+    return false;
     }
+   }
+
+  function _emptyIndexies(gameBoard){
+    return  gameBoard.filter(space => space != 'O' && space != 'X');
+  }
+
+  function minimax(newBoard, thePlayer, playerX, playerO) {
+    const availSpots = _emptyIndexies(newBoard);
+
+    if (winning(newBoard, playerO)) {
+      return {score:-10};
+    } else if (winning(newBoard, playerX)) {
+      return {score:10};
+    } else if (availSpots.length === 0) {
+      return {score:0};
+    }
+    
+    const moves = [];
+
+    for (let i = 0; i < availSpots.length; i++){
+      const move = {};
+      move.index = newBoard[availSpots[i]];
+      newBoard[availSpots[i]] = thePlayer;
+
+      if (thePlayer == playerX) {
+        const result = minimax(newBoard, playerO, playerX, playerO);
+        move.score = result.score;
+      }
+      else {
+        const result = minimax(newBoard, playerX, playerX, playerO);
+        move.score = result.score;
+      }
+      newBoard[availSpots[i]] = move.index;
+      moves.push(move);
+    }
+
+  let bestMove;
+  if(thePlayer === playerX) {
+    let bestScore = -10000;
+    for(let i = 0; i < moves.length; i++) {
+      if(moves[i].score > bestScore){
+        bestScore = moves[i].score;
+        bestMove = i;
+      }
+    }
+  } else {
+    let bestScore = 10000;
+    for(var i = 0; i < moves.length; i++){
+      if(moves[i].score < bestScore){
+        bestScore = moves[i].score;
+        bestMove = i;
+      }
+    }
+  }
+  return moves[bestMove];
 }
- 
-
-function move() {
-  let row;
-  let col;
-  return {row, col};
-};
-// This will return the best possible
-// move for the player
-function findBestMove(board) {
-
-    let bestVal = -1000;
-    let bestMove = move();
-    bestMove.row = -1;
-    bestMove.col = -1;
-  
-    // Traverse all cells, evaluate
-    // minimax function for all empty
-    // cells. And return the cell
-    // with optimal value.
-    for(let i = 0; i < 3; i++) {
-        for(let j = 0; j < 3; j++) {
-             
-            // Check if cell is empty
-            if (board[i][j] == '') {
-                 
-                // Make the move
-                board[i][j] = controller.player1.token;
-  
-                // compute evaluation function
-                // for this move.
-                let moveVal = minimax(board, 0, false);
-  
-                // Undo the move
-                board[i][j] = '';
-  
-                // If the value of the current move
-                // is more than the best value, then
-                // update best
-                if (moveVal > bestVal) {
-                    bestMove.row = i;
-                    bestMove.col = j;
-                    bestVal = moveVal;
-                }
-            }
-        }
-    }
-
-      board[bestMove.row][bestMove.col] = 'token';
-      const index = board.flat().indexOf('token');
-      // board[bestMove.row][bestMove.col] = '';
-
-      return index;
-
-    
-    // return bestMove;
-}
-
   return {aiAgainstAi, placeAIMove, assignAItoBot, aiGoesFirst}
 })();
