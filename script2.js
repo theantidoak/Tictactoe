@@ -6,6 +6,10 @@ const dragAndDrop = (() => {
   const dropbox2 = document.querySelector('#drop2');
   const _leftDropbox = document.querySelector('.left-dropbox');
   const _rightDropbox = document.querySelector('.right-dropbox');
+  const difficultyInput = document.querySelector('.slider');
+  const rangeLabel = document.querySelector('#myRangeLabel');
+  const playButton = document.querySelector('.play');
+
   const _notDrop1 = ['drop2', 'human1', 'human2', 'bot1', 'bot2'];
   const _notDrop2 = ['drop1', 'human1', 'human2', 'bot1', 'bot2'];
   const _mobileDraggableID = [];
@@ -22,6 +26,9 @@ const dragAndDrop = (() => {
   dropbox2.parentElement.addEventListener('dragstart', _drag);
   dropbox2.parentElement.addEventListener('dragover', _allowDrop);
   dropbox2.parentElement.addEventListener('drop', _drop);
+
+  difficultyInput.addEventListener('click', setDifficulty);
+  playButton.addEventListener('click', startGame);
 
   const _removeDragAndDropBind = function() {
     playerOptions.forEach((option) => option.removeEventListener('dragstart', _drag));
@@ -139,8 +146,31 @@ const dragAndDrop = (() => {
     }
   }
 
+  const displayDifficultyOption = function() {
+    const bot1 = controller.player1.playerType == 'bot';
+    const bot2 = controller.player2.playerType == 'bot';
+    if ((bot1 || bot2) && (!(bot1 && bot2))) {
+      difficultyInput.parentElement.style.display = 'block';
+      _draggables.parentElement.style.filter = 'blur(2px)';
+    }
+  }
+
+  function setDifficulty() {
+    if (controller.player1.playerType == 'bot') {
+      controller.player1.difficulty = this.value == 1 ? 'easy' : 'hard';
+    } else if (controller.player2.playerType == 'bot') {
+      controller.player2.difficulty = this.value == 1 ? 'easy' : 'hard';
+    }
+  }
+
+  function startGame() {
+    difficultyInput.parentElement.style.display = 'none';
+    _draggables.parentElement.style.filter = 'blur(0px)';
+  }
+
   const _init = function() {
     aiOpponent.assignAItoBot.call(controller);
+    displayDifficultyOption();
     aiOpponent.aiAgainstAi();
     controller.bindtoSquares();
     aiOpponent.aiGoesFirst();
@@ -203,7 +233,6 @@ const board = (() => {
         }
       });
     currentGame.splice(0, currentGame.length, ...squares.map((square) => square.textContent));
-    controller.player1.roundOver = false;
   }
 
   function _createNewGame() {
@@ -355,10 +384,10 @@ const controller = (() => {
 function player(token, playerType) {
   this.token = token;
   this.playerType = playerType;
-  this.roundOver = false;
+  this.difficulty = undefined;
   let wins = 0;
   let ties = 0;
-  return {wins, ties, playerType, token, roundOver};
+  return {wins, ties, playerType, token, difficulty};
 }
 
 
@@ -366,7 +395,7 @@ const aiOpponent = (function() {
   
   const placeAIMove = function() {
 
-    if (controller.player1.playerType == 'bot' && controller.player2.playerType == 'bot') {
+    if (controller.player1.difficulty == 'easy' || controller.player2.difficulty == 'easy') {
       usableNumber = _generateOpenSquare();
     } else {
       usableNumber = bestAiMove().index;
